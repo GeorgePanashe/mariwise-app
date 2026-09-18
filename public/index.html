@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MariWise — Prototype</title>
+<style>
+  :root{
+    --teal-900:#0B4A40;
+    --teal-700:#0E6B5B;
+    --teal-500:#158A73;
+    --gold-500:#E8A33D;
+    --gold-100:#FBEBD2;
+    --sand-50:#FAF9F5;
+    --sand-100:#F2EFE6;
+    --ink-900:#1C2521;
+    --ink-600:#5B6862;
+    --ink-400:#8B968F;
+    --line:#E4E0D4;
+    --red-600:#B8433A;
+    --red-100:#F7E4E1;
+    --green-100:#DFF1EA;
+    --amber-100:#FBF0D9;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(28,37,33,.06), 0 4px 14px rgba(28,37,33,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--sand-50);
+    color:var(--ink-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--sand-50);display:flex;flex-direction:column;position:relative;}
+
+  /* Top bar */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 20px 14px;background:var(--teal-900);color:#fff;
+  }
+  .topbar h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px;}
+  .topbar .biz{font-size:12px;color:#BFE0D6;margin-top:2px;}
+  .topbar select{
+    background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
+    border-radius:8px;padding:5px 8px;font-size:12px;
+  }
+  .topbar select option{color:#111;}
+  .topbar-gear{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;
+    border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex-shrink:0;
+  }
+  .topbar-gear svg{width:16px;height:16px;}
+
+  main{flex:1;padding:16px 16px 90px;}
+  .hidden{display:none !important;}
+
+  h2.section-title{font-size:15px;font-weight:700;margin:22px 0 10px;color:var(--ink-900);}
+  h2.section-title:first-child{margin-top:4px;}
+
+  /* Cards */
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;margin-bottom:12px;box-shadow:var(--shadow);
+  }
+  .stat-row{display:flex;gap:10px;}
+  .stat{
+    flex:1;background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal-500);
+    border-radius:12px;padding:14px 38px 14px 14px;box-shadow:var(--shadow);
+  }
+  .stat.expense{border-left-color:var(--red-600);}
+  .stat.profit{border-left-color:var(--gold-500);}
+  .stat .label{font-size:11.5px;color:var(--ink-600);margin-bottom:4px;}
+  .stat .value{font-size:20px;font-weight:700;}
+  .stat.profit .value{color:#946200;}
+  .stat.owed{border-left-color:var(--gold-500);}
+  .stat.owed .icon-badge{background:var(--gold-100);color:#8A5A00;}
+
+  .insight{
+    background:var(--teal-900);color:#fff;border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;line-height:1.5;font-size:14px;
+  }
+  .insight b{color:var(--gold-500);}
+
+  .warn-card{background:var(--amber-100);border:1px solid #EBCE8F;border-radius:12px;padding:12px 14px;font-size:13.5px;margin-bottom:10px;}
+  .empty-state{text-align:center;padding:30px 10px;color:var(--ink-600);font-size:14px;}
+  .empty-state .big{display:flex;justify-content:center;margin-bottom:10px;}
+  .empty-state .big svg{width:38px;height:38px;color:var(--ink-400);}
+
+  /* Buttons */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border:none;border-radius:11px;padding:13px 18px;font-size:14.5px;font-weight:600;
+    cursor:pointer;width:100%;
+  }
+  .btn-primary{background:var(--teal-700);color:#fff;}
+  .btn-primary:active{background:var(--teal-900);}
+  .btn-gold{background:var(--gold-500);color:#3A2600;}
+  .btn-outline{background:#fff;border:1.5px solid var(--teal-700);color:var(--teal-700);}
+  .btn-ghost{background:var(--sand-100);color:var(--ink-900);}
+  .btn-danger{background:var(--red-100);color:var(--red-600);}
+  .btn-row{display:flex;gap:10px;}
+  .quick-row{display:flex;gap:10px;margin-bottom:16px;}
+  .quick-row .btn{padding:12px 8px;font-size:13px;}
+
+  /* Forms */
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-600);margin:12px 0 5px;}
+  input,select,textarea{
+    width:100%;padding:12px 12px;border-radius:10px;border:1.5px solid var(--line);
+    font-size:15px;background:#fff;color:var(--ink-900);font-family:inherit;
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal-500);}
+  .field-help{font-size:11.5px;color:var(--ink-400);margin-top:4px;}
+
+  /* List items */
+  .list-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 4px;border-bottom:1px solid var(--line);
+  }
+  .list-item:last-child{border-bottom:none;}
+  .li-left .title{font-size:14px;font-weight:600;}
+  .li-left .sub{font-size:12px;color:var(--ink-600);margin-top:2px;}
+  .li-right{text-align:right;font-weight:700;font-size:14.5px;}
+  .delete-btn{
+    background:var(--red-100);color:var(--red-600);border:none;border-radius:8px;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .delete-btn svg{width:15px;height:15px;}
+  .edit-btn{
+    background:var(--sand-100);color:var(--ink-600);border:none;border-radius:8px;
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .edit-btn svg{width:14px;height:14px;}
+  .tag{
+    display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;
+    margin-right:6px;text-transform:uppercase;letter-spacing:.3px;
+  }
+  .tag.sale{background:var(--green-100);color:var(--teal-900);}
+  .tag.expense{background:var(--red-100);color:var(--red-600);}
+  .tag.stock{background:var(--amber-100);color:#8A5A00;}
+
+  /* Cart */
+  .cart-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .cart-item .name{flex:1;font-size:14px;}
+  .qty-ctrl{display:flex;align-items:center;gap:6px;}
+  .qty-ctrl button{
+    width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:16px;cursor:pointer;
+  }
+  .cart-total-row{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:12px 0 4px;}
+
+  /* Bottom nav */
+  nav.bottomnav{
+    position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    background:#fff;border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    box-shadow:0 -2px 10px rgba(0,0,0,.05);
+  }
+  nav.bottomnav button{
+    background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:10.5px;color:var(--ink-400);cursor:pointer;padding:4px 10px;font-weight:600;font-family:inherit;
+  }
+  nav.bottomnav button .icon{
+    display:flex;align-items:center;justify-content:center;
+    width:34px;height:26px;border-radius:9px;
+  }
+  nav.bottomnav button .icon svg{width:20px;height:20px;}
+  nav.bottomnav button.active .icon{background:var(--gold-100);}
+
+  /* Tile buttons (quick actions) */
+  .tile-row{display:flex;gap:10px;margin-bottom:16px;}
+  .tile-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
+    border:none;border-radius:14px;padding:15px 6px;cursor:pointer;
+    font-family:inherit;font-size:12px;font-weight:600;
+  }
+  .tile-btn svg{width:21px;height:21px;}
+  .tile-btn.primary{background:var(--teal-700);color:#fff;}
+  .tile-btn.outline{background:#fff;border:1.5px solid var(--teal-500);color:var(--teal-700);}
+  .tile-btn.ghost{background:var(--gold-100);color:#8A5A00;}
+
+  /* Stat card mini icons */
+  .stat{position:relative;}
+  .stat .icon-badge{
+    position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;background:var(--green-100);color:var(--teal-700);
+  }
+  .stat.expense .icon-badge{background:var(--red-100);color:var(--red-600);}
+  .stat.profit .icon-badge{background:var(--gold-100);color:#8A5A00;}
+  .stat .icon-badge svg{width:14px;height:14px;}
+
+  .app-name{font-size:11px;font-weight:700;color:var(--gold-500);letter-spacing:.3px;margin-bottom:1px;}
+  .brand-mark{display:flex;align-items:center;gap:8px;}
+  .brand-mark svg{width:24px;height:24px;flex-shrink:0;}
+  .brand-coin{color:var(--gold-500);}
+  .topbar{border-bottom:3px solid var(--gold-500);}
+  .warn-card{display:flex;align-items:flex-start;gap:9px;}
+  .warn-card svg{width:18px;height:18px;flex-shrink:0;margin-top:1px;color:#8A5A00;}
+  nav.bottomnav button.active{color:var(--teal-700);}
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(28,37,33,.45);display:flex;align-items:flex-end;
+    z-index:50;max-width:480px;margin:0 auto;
+  }
+  .modal{
+    background:#fff;width:100%;border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height:85vh;overflow-y:auto;
+  }
+  .modal h3{margin:0 0 4px;font-size:17px;}
+  .modal-close{position:absolute;top:16px;right:18px;background:none;border:none;font-size:20px;color:var(--ink-600);cursor:pointer;}
+
+  /* Onboarding / Auth */
+  .entry-screen{
+    max-width:480px;margin:0 auto;min-height:100vh;background:var(--teal-900);color:#fff;
+    display:flex;flex-direction:column;justify-content:center;padding:32px 26px;
+  }
+  .entry-screen .logo{margin-bottom:10px;}
+  .entry-screen .logo svg{width:44px;height:44px;color:var(--gold-500);}
+  .entry-screen h1{font-size:24px;margin:0 0 6px;}
+  .entry-screen p.tag{display:block;font-size:14px;color:#BFE0D6;margin-bottom:26px;text-transform:none;letter-spacing:0;font-weight:400;background:none;padding:0;}
+  .entry-screen label{color:#DDEEE8;}
+  .entry-screen input,.entry-screen select{border:none;}
+  .entry-screen .btn-primary{background:var(--gold-500);color:#3A2600;margin-top:22px;}
+  .auth-tabs{display:flex;gap:6px;margin-bottom:20px;background:rgba(255,255,255,.1);border-radius:11px;padding:4px;}
+  .auth-tabs button{
+    flex:1;padding:10px;border:none;border-radius:8px;background:none;color:#BFE0D6;
+    font-family:inherit;font-weight:600;font-size:13.5px;cursor:pointer;
+  }
+  .auth-tabs button.active{background:#fff;color:var(--teal-900);}
+  .entry-screen .error-msg{color:#FFB4A8;font-size:13px;margin-top:10px;min-height:16px;}
+  .entry-screen .link-btn{background:none;border:none;color:var(--gold-500);font-family:inherit;font-size:13px;cursor:pointer;padding:0;margin-top:14px;text-align:left;}
+
+  .lesson-card{border-left:4px solid var(--gold-500);}
+  .lesson-card h4{margin:0 0 6px;font-size:14.5px;}
+  .lesson-card p{margin:0 0 6px;font-size:13px;color:var(--ink-600);line-height:1.5;}
+  .lesson-card .example{background:var(--sand-100);border-radius:8px;padding:9px 11px;font-size:12.5px;color:var(--ink-900);margin-top:6px;}
+
+  .ai-msg{max-width:85%;padding:10px 13px;border-radius:14px;margin-bottom:10px;font-size:13.5px;line-height:1.5;}
+  .ai-msg.bot{background:var(--sand-100);border-bottom-left-radius:4px;}
+  .ai-msg.user{background:var(--teal-700);color:#fff;margin-left:auto;border-bottom-right-radius:4px;}
+  .ai-msg .ai-p{margin:0 0 8px;}
+  .ai-msg .ai-p:last-child{margin-bottom:0;}
+  .ai-msg .ai-list{margin:4px 0 8px;padding-left:18px;}
+  .ai-msg .ai-list:last-child{margin-bottom:0;}
+  .ai-msg .ai-list li{margin-bottom:3px;}
+  .ai-msg strong{color:var(--teal-900);}
+  .ai-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .ai-suggest button{
+    font-size:12px;padding:7px 11px;border-radius:99px;border:1px solid var(--teal-500);
+    background:#fff;color:var(--teal-700);cursor:pointer;font-family:inherit;
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<div id="auth-screen" class="entry-screen">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg></div>
+  <h1>MariWise</h1>
+  <span class="tag">Know your numbers. Grow your business.</span>
+  <div class="auth-tabs">
+    <button id="tab-login" class="active" onclick="switchAuthTab('login')">Log in</button>
+    <button id="tab-register" onclick="switchAuthTab('register')">Create account</button>
+  </div>
+  <label style="margin-top:0;">Email</label>
+  <input id="auth-email" type="email" placeholder="you@example.com" autocomplete="username">
+  <label>Password</label>
+  <input id="auth-password" type="password" placeholder="At least 6 characters" autocomplete="current-password">
+  <div id="auth-confirm-wrap" class="hidden">
+    <label>Confirm password</label>
+    <input id="auth-password-confirm" type="password" placeholder="Type it again" autocomplete="new-password">
+  </div>
+  <button class="btn btn-primary" id="auth-submit-btn" onclick="submitAuth()">Log in →</button>
+  <div class="error-msg" id="auth-error"></div>
+</div>
+
+<div id="onboarding" class="entry-screen hidden">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg></div>
+  <h1>Set up your business</h1>
+  <span class="tag">You're logged in — now tell me about your business.</span>
+  <label>Business name</label>
+  <input id="ob-name" placeholder="e.g. Mai Tendai's Tuckshop">
+  <label>What do you sell?</label>
+  <input id="ob-type" placeholder="e.g. Groceries, hair salon, hardware">
+  <label>Preferred currency</label>
+  <select id="ob-currency">
+    <option value="USD">USD — US Dollar</option>
+    <option value="ZiG">ZiG — Zimbabwe Gold</option>
+  </select>
+  <label>Preferred language</label>
+  <select id="ob-lang">
+    <option value="en">English</option>
+    <option value="sn">Shona</option>
+    <option value="nd">Ndebele</option>
+  </select>
+  <button class="btn btn-primary" onclick="completeOnboarding()">Create my business →</button>
+  <div class="error-msg" id="onboarding-error"></div>
+  <button class="link-btn" onclick="logout()">Log out</button>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="brand-mark">
+      <svg class="brand-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg>
+      <div>
+        <div class="app-name">MariWise</div>
+        <h1 id="tb-bizname">My Business</h1>
+        <div class="biz" id="tb-sub">Today</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <select id="tb-currency" onchange="setCurrency(this.value)">
+        <option value="USD">USD</option><option value="ZiG">ZiG</option>
+      </select>
+      <button class="topbar-gear" onclick="openSettings()" title="Settings &amp; exchange rate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V20a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.5V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V10a1.7 1.7 0 0 0 1.5 1H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main>
+    <!-- HOME -->
+    <section id="view-home">
+      <div class="tile-row">
+        <button class="tile-btn primary" onclick="openModal('sale')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <span>New sale</span>
+        </button>
+        <button class="tile-btn outline" onclick="openModal('expense')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+          <span>Expense</span>
+        </button>
+        <button class="tile-btn ghost" onclick="showView('ai')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c.4 3 1.8 5.7 4 7.9 2.2 2.2 4.9 3.6 7.9 4-3 .4-5.7 1.8-7.9 4-2.2 2.2-3.6 4.9-4 7.9-.4-3-1.8-5.7-4-7.9-2.2-2.2-4.9-3.6-7.9-4 3-.4 5.7-1.8 7.9-4 2.2-2.2 3.6-4.9 4-7.9Z"/></svg>
+          <span>Ask AI</span>
+        </button>
+      </div>
+
+      <div class="card" id="smart-entry-card">
+        <h2 class="section-title" style="margin-top:0;display:flex;align-items:center;gap:7px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;color:var(--gold-500);"><path d="M12 2.5c.4 3 1.8 5.7 4 7.9 2.2 2.2 4.9 3.6 7.9 4-3 .4-5.7 1.8-7.9 4-2.2 2.2-3.6 4.9-4 7.9-.4-3-1.8-5.7-4-7.9-2.2-2.2-4.9-3.6-7.9-4 3-.4 5.7-1.8 7.9-4 2.2-2.2 3.6-4.9 4-7.9Z"/></svg>
+          Describe what happened
+        </h2>
+        <p class="field-help" style="margin-top:0;">Not sure what to call it? Just say what you did — e.g. "paid rent 50 cash" or "gave John his wages, 30" — and I'll work out how to record it.</p>
+        <textarea id="smart-input" rows="2" placeholder="e.g. I paid the shop rent, $50 cash"></textarea>
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="interpretTransaction()">Figure it out</button>
+        <div id="smart-result"></div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+          <div class="label">Sales today</div>
+          <div class="value" id="stat-sales">$0.00</div>
+        </div>
+        <div class="stat expense">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17"/><path d="M17 17H7V7"/></svg></div>
+          <div class="label">Expenses today</div>
+          <div class="value" id="stat-expenses">$0.00</div>
+        </div>
+      </div>
+      <div class="stat-row" style="margin-top:10px;">
+        <div class="stat profit">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c.4 3 1.8 5.7 4 7.9 2.2 2.2 4.9 3.6 7.9 4-3 .4-5.7 1.8-7.9 4-2.2 2.2-3.6 4.9-4 7.9-.4-3-1.8-5.7-4-7.9-2.2-2.2-4.9-3.6-7.9-4 3-.4 5.7-1.8 7.9-4 2.2-2.2 3.6-4.9 4-7.9Z"/></svg></div>
+          <div class="label">Estimated profit today</div>
+          <div class="value" id="stat-profit">$0.00</div>
+        </div>
+        <div class="stat owed">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M16.5 14.5h.01"/></svg></div>
+          <div class="label">Customers owe you</div>
+          <div class="value" id="stat-owed">$0.00</div>
+        </div>
+      </div>
+      <div class="stat-row" style="margin-top:10px;">
+        <div class="stat expense" style="flex:1;">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
+          <div class="label">You owe suppliers</div>
+          <div class="value" id="stat-supplier-owed">$0.00</div>
+        </div>
+      </div>
+
+      <div id="insight-box" class="insight"></div>
+      <div id="rate-warning-box"></div>
+      <div id="lowstock-box"></div>
+
+      <h2 class="section-title">Recent activity</h2>
+      <div class="card" id="recent-list"><div class="empty-state"><div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v17.5l-2.3-1.4-2.2 1.4-2.2-1.4-2.2 1.4-2.2-1.4L6 20.5Z"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg></div>No transactions yet. Tap "New sale" to record your first one.</div></div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="view-transactions" class="hidden">
+      <h2 class="section-title">All transactions</h2>
+      <div class="btn-row" style="margin-bottom:12px;">
+        <button class="btn btn-primary" onclick="openModal('sale')">＋ Sale</button>
+        <button class="btn btn-outline" onclick="openModal('expense')">＋ Expense</button>
+      </div>
+      <div class="card" id="txn-list"></div>
+    </section>
+
+    <!-- STOCK -->
+    <section id="view-stock" class="hidden">
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-primary" onclick="openModal('product')">＋ Add product</button>
+      </div>
+      <div class="card" id="stock-list"></div>
+    </section>
+
+
+    <!-- LEARN -->
+    <section id="view-learn" class="hidden">
+      <h2 class="section-title">What do you want to understand?</h2>
+      <div class="card">
+        <p class="field-help" style="margin-top:0;">Ask about any money topic in your business, in your own words — pricing, profit, cash flow, debt, anything.</p>
+        <div class="btn-row">
+          <input id="learn-input" placeholder="e.g. Why is my profit lower than my sales?" style="flex:1;">
+          <button class="btn btn-primary" style="width:auto;padding:13px 16px;" onclick="askLearn()">Ask</button>
+        </div>
+        <div class="ai-suggest" style="margin-top:10px;">
+          <button onclick="askLearn('Sales vs profit')">Sales vs profit</button>
+          <button onclick="askLearn('How do I price my products?')">Pricing</button>
+          <button onclick="askLearn('What is cash flow?')">Cash flow</button>
+          <button onclick="askLearn('How should I handle customers who owe me money?')">Customer debt</button>
+          <button onclick="askLearn('How do I separate personal and business money?')">Personal vs business money</button>
+          <button onclick="askLearn('How do I budget for a slow month?')">Slow-month budgeting</button>
+        </div>
+      </div>
+      <div id="learn-answer"></div>
+
+      <h2 class="section-title">Or browse a topic</h2>
+      <div id="learn-topics"></div>
+    </section>
+
+    <!-- AI -->
+    <section id="view-ai" class="hidden">
+      <h2 class="section-title">Ask MariWise</h2>
+      <div id="ai-thread"></div>
+      <div class="ai-suggest">
+        <button onclick="askAI('How much did I sell today?')">How much did I sell today?</button>
+        <button onclick="askAI('What was my profit today?')">Profit today?</button>
+        <button onclick="askAI('Which products are low on stock?')">Low stock?</button>
+        <button onclick="askAI('How much do customers owe me?')">Who owes me?</button>
+        <button onclick="askAI('Who do I owe money to, and how much?')">Who do I owe?</button>
+      </div>
+      <div class="btn-row">
+        <input id="ai-input" placeholder="Type a question about your business…" style="flex:1;">
+        <button class="btn btn-primary" style="width:auto;padding:13px 18px;" onclick="askAI()">Ask</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <button class="navbtn active" data-v="home" onclick="showView('home')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V10"/></svg></span>Home
+    </button>
+    <button class="navbtn" data-v="transactions" onclick="showView('transactions')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v17.5l-2.3-1.4-2.2 1.4-2.2-1.4-2.2 1.4-2.2-1.4L6 20.5Z"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg></span>Transactions
+    </button>
+    <button class="navbtn" data-v="stock" onclick="showView('stock')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>Stock
+    </button>
+    <button class="navbtn" data-v="learn" onclick="showView('learn')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.8A2.3 2.3 0 0 1 6.3 2.5H20v17.2H6.3A2.3 2.3 0 0 0 4 21.9Z"/><path d="M4 19.5a2.3 2.3 0 0 1 2.3-2.3H20"/></svg></span>Learn
+    </button>
+  </nav>
+</div>
+
+<script>
+/* ---------- STATE ---------- */
+const CURR_SYMS = {USD:'$',ZiG:'ZiG',ZAR:'R',BWP:'P',ZMW:'K',GBP:'£'};
+const ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v17.5l-2.3-1.4-2.2 1.4-2.2-1.4-2.2 1.4-2.2-1.4L6 20.5Z"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg>';
+const ICON_BOX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>';
+const ICON_WARN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 22 20.5H2Z"/><path d="M12 9.5v5"/><path d="M12 17.7h.01"/></svg>';
+
+let DB = {business:null, currency:'USD', language:'en', products:[], transactions:[]};
+let sb = null;                // Supabase client (browser-side, anon key), set in boot()
+let currentBusinessId = null; // set after login once we know which business is theirs
+
+function getBusinessId(){ return currentBusinessId; }
+function money(v){ return (CURR_SYMS[DB.currency]||'$') + Number(v||0).toFixed(2); }
+function fmt(v, currency){ return (CURR_SYMS[currency]||'$') + Number(v||0).toFixed(2); }
+// Converts an amount from its own currency into the currently selected
+// "Report in" currency (DB.currency), using the saved exchange rate.
+// Never touches the original stored record — this is purely for display.
+function convertToReport(amount, fromCurrency){
+  const from = fromCurrency || 'USD';
+  if(from === DB.currency) return { value:Number(amount)||0, ok:true, converted:false };
+  const rate = DB.business?.exchange_rate;
+  if(!rate) return { value:Number(amount)||0, ok:false, converted:false };
+  if(from==='USD' && DB.currency==='ZiG') return { value:(Number(amount)||0)*rate, ok:true, converted:true };
+  if(from==='ZiG' && DB.currency==='USD') return { value:(Number(amount)||0)/rate, ok:true, converted:true };
+  return { value:Number(amount)||0, ok:false, converted:false };
+}
+// For dashboard totals: converted value if possible, else the raw amount
+// (so a missing rate doesn't silently vanish from the total — see the
+// unconverted-count warning rendered on the dashboard instead).
+function reportValue(amount, fromCurrency){ return convertToReport(amount, fromCurrency).value; }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function isToday(iso){ return (iso||'').slice(0,10) === todayStr(); }
+
+// Every real API call goes through here so the user's login token rides along.
+async function apiFetch(path, options={}){
+  const { data:{ session } } = await sb.auth.getSession();
+  const headers = Object.assign({}, options.headers||{});
+  if(session) headers['Authorization'] = `Bearer ${session.access_token}`;
+  return fetch(path, Object.assign({}, options, { headers }));
+}
+
+/* ---------- AUTH ---------- */
+let authMode = 'login';
+function switchAuthTab(mode){
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('tab-register').classList.toggle('active', mode==='register');
+  document.getElementById('auth-confirm-wrap').classList.toggle('hidden', mode!=='register');
+  document.getElementById('auth-submit-btn').textContent = mode==='login' ? 'Log in →' : 'Create account →';
+  const err = document.getElementById('auth-error');
+  err.style.color = '#FFB4A8';
+  err.textContent = '';
+}
+async function submitAuth(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.color = '#FFB4A8';
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Please enter an email and password.'; return; }
+  if(authMode==='register'){
+    const confirmPw = document.getElementById('auth-password-confirm').value;
+    if(password.length<6){ errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    if(password!==confirmPw){ errEl.textContent = "Passwords don't match."; return; }
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if(error){ errEl.textContent = error.message; return; }
+    if(!data.session){
+      errEl.style.color = '#BFE0D6';
+      errEl.textContent = 'Account created — check your email to confirm it, then log in.';
+      switchAuthTab('login');
+      return;
+    }
+    await afterLogin();
+  } else {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){ errEl.textContent = error.message; return; }
+    await afterLogin();
+  }
+}
+async function afterLogin(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  await loadMyBusiness();
+}
+async function logout(){
+  if(!confirm('Log out of MariWise?')) return;
+  await sb.auth.signOut();
+  currentBusinessId = null;
+  DB = {business:null, currency:'USD', language:'en', products:[], transactions:[]};
+  location.reload();
+}
+
+async function loadMyBusiness(){
+  try{
+    const res = await apiFetch('/api/my-business');
+    const biz = await res.json();
+    if(biz && biz.id){
+      currentBusinessId = biz.id;
+      DB.business = biz; DB.currency = biz.currency; DB.language = biz.language;
+      document.getElementById('onboarding').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('tb-currency').value = DB.currency;
+      renderLearnTopics();
+      await refreshState();
+    } else {
+      document.getElementById('onboarding').classList.remove('hidden');
+    }
+  }catch(e){
+    alert('Could not load your business: '+e.message);
+  }
+}
+
+/* ---------- ONBOARDING (create the business, once logged in) ---------- */
+async function completeOnboarding(){
+  const name = document.getElementById('ob-name').value.trim();
+  const errEl = document.getElementById('onboarding-error');
+  errEl.textContent = '';
+  if(!name){ errEl.textContent = 'Please enter your business name'; return; }
+  const type = document.getElementById('ob-type').value.trim() || 'General business';
+  const currency = document.getElementById('ob-currency').value;
+  const language = document.getElementById('ob-lang').value;
+  try{
+    const res = await apiFetch('/api/business', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, type, currency, language })
+    });
+    const biz = await res.json();
+    if(biz.error) throw new Error(biz.error);
+    currentBusinessId = biz.id;
+    DB.business = biz; DB.currency = biz.currency; DB.language = biz.language;
+
+    // seed a couple of demo-friendly example products so Stock isn't empty
+    await addProductToServer({ name:'Cooking oil (750ml)', unit:'bottle', price:3, cost:2.2, stock:12, low_stock:4 });
+    await addProductToServer({ name:'Bread (loaf)', unit:'piece', price:1, cost:0.65, stock:8, low_stock:3 });
+
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('tb-currency').value = DB.currency;
+    renderLearnTopics();
+    await refreshState();
+  }catch(e){
+    errEl.textContent = e.message;
+  }
+}
+
+async function addProductToServer(p){
+  const res = await apiFetch('/api/products', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ business_id:getBusinessId(), ...p })
+  });
+  return res.json();
+}
+
+async function refreshState(){
+  const bid = getBusinessId();
+  if(!bid) return;
+  const [prodRes, txnRes] = await Promise.all([
+    apiFetch(`/api/products?business_id=${bid}`),
+    apiFetch(`/api/transactions?business_id=${bid}`)
+  ]);
+  DB.products = await prodRes.json();
+  const rawTxns = await txnRes.json();
+  DB.transactions = rawTxns.map(t=>({...t, date:t.created_at, desc:t.description, pay:t.payment_method}));
+  renderAll();
+}
+
+/* ---------- NAV ---------- */
+function showView(v){
+  ['home','transactions','stock','learn','ai'].forEach(id=>{
+    document.getElementById('view-'+id).classList.toggle('hidden', id!==v);
+  });
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+  if(v==='transactions') renderTxnList();
+  if(v==='stock') renderStockList();
+  if(v==='learn') renderLearnTopics();
+  if(v==='ai' && document.getElementById('ai-thread').children.length===0){
+    addAiMsg("Hi! I'm MariWise. Ask me about your sales, profit, stock, or who owes who — or anything else about running your business — and I'll ground the real numbers in your own records.", 'bot');
+  }
+}
+
+/* ---------- MODALS ---------- */
+function openModal(type, arg){
+  let html = '';
+  if(type==='sale'){
+    if(DB.products.length===0){ alert('Add a product first (go to Stock → Add product).'); return; }
+    const hasBoth = DB.products.some(p=>(p.currency||'USD')==='USD') && DB.products.some(p=>(p.currency||'USD')==='ZiG');
+    html = `
+      <h3>New sale</h3>
+      <p class="field-help">Select products and quantities, then complete the sale.</p>
+      ${hasBoth ? `
+      <label style="margin-top:0;">Selling in</label>
+      <select id="sale-currency" onchange="renderCart()">
+        <option value="USD" ${DB.currency==='USD'?'selected':''}>USD</option>
+        <option value="ZiG" ${DB.currency==='ZiG'?'selected':''}>ZiG</option>
+      </select>
+      <p class="field-help">You have products priced in both currencies — a sale can only mix products priced the same way.</p>
+      ` : `<input type="hidden" id="sale-currency" value="${DB.products[0].currency||'USD'}">`}
+      <input id="cart-search" placeholder="Search products…" style="margin-bottom:8px;" oninput="renderCart()">
+      <div id="cart-products"></div>
+      <div id="cart-summary"></div>
+      <label>Payment method</label>
+      <select id="sale-pay"><option>Cash</option><option>Mobile money</option><option>Bank transfer</option><option>Credit (customer owes)</option></select>
+      <div id="sale-customer-wrap" class="hidden">
+        <label>Customer name</label>
+        <input id="sale-customer" placeholder="e.g. Sekai">
+      </div>
+      <div id="sale-cash-wrap" class="hidden">
+        <label>Cash received</label>
+        <input id="sale-cash-received" type="number" step="0.01" placeholder="0.00" oninput="updateChangeDue()">
+        <p class="field-help" id="sale-change-due"></p>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="completeSale()">Complete sale</button>
+    `;
+  } else if(type==='expense'){
+    html = `
+      <h3>Record an expense</h3>
+      <label>What was it for?</label>
+      <input id="exp-desc" placeholder="e.g. Transport, airtime, rent">
+      <div class="btn-row">
+        <div style="flex:1;"><label>Amount</label><input id="exp-amount" type="number" step="0.01" placeholder="0.00"></div>
+        <div style="flex:1;"><label>Currency</label>
+          <select id="exp-currency"><option value="USD" ${DB.currency==='USD'?'selected':''}>USD</option><option value="ZiG" ${DB.currency==='ZiG'?'selected':''}>ZiG</option></select>
+        </div>
+      </div>
+      <label>Payment method</label>
+      <select id="exp-pay"><option>Cash</option><option>Mobile money</option><option>Bank transfer</option></select>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-top:14px;">
+        <input type="checkbox" id="exp-on-credit" style="width:auto;" onchange="document.getElementById('exp-supplier-wrap').classList.toggle('hidden', !this.checked)">
+        Bought on credit — I still owe a supplier for this
+      </label>
+      <div id="exp-supplier-wrap" class="hidden">
+        <label>Supplier name (optional)</label>
+        <input id="exp-supplier" placeholder="e.g. City Wholesalers">
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="completeExpense()">Save expense</button>
+    `;
+  } else if(type==='product'){
+    html = `
+      <h3>Add a product</h3>
+      <label>Product name</label>
+      <input id="p-name" placeholder="e.g. Sugar (2kg)">
+      <label>Unit</label>
+      <select id="p-unit"><option>piece</option><option>bottle</option><option>box</option><option>kg</option><option>g</option><option>litre</option><option>pack</option></select>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Selling price</label><input id="p-price" type="number" step="0.01" placeholder="0.00"></div>
+        <div style="flex:1;"><label>Cost per unit</label><input id="p-cost" type="number" step="0.01" placeholder="0.00"></div>
+      </div>
+      <label>Priced in</label>
+      <select id="p-currency"><option value="USD" ${DB.currency==='USD'?'selected':''}>USD</option><option value="ZiG" ${DB.currency==='ZiG'?'selected':''}>ZiG</option></select>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Starting stock</label><input id="p-stock" type="number" placeholder="0"></div>
+        <div style="flex:1;"><label>Low-stock alert at</label><input id="p-low" type="number" placeholder="e.g. 3"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="completeAddProduct()">Save product</button>
+    `;
+  } else if(type==='edit-product'){
+    const p = DB.products.find(x=>x.id===arg);
+    if(!p){ alert('Product not found.'); return; }
+    const units = ['piece','bottle','box','kg','g','litre','pack'];
+    const pCurrency = p.currency || 'USD';
+    html = `
+      <h3>Edit product</h3>
+      <label>Product name</label>
+      <input id="p-name" value="${p.name.replace(/"/g,'&quot;')}">
+      <label>Unit</label>
+      <select id="p-unit">${units.map(u=>`<option ${p.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Selling price</label><input id="p-price" type="number" step="0.01" value="${p.price}"></div>
+        <div style="flex:1;"><label>Cost per unit</label><input id="p-cost" type="number" step="0.01" value="${p.cost}"></div>
+      </div>
+      <label>Priced in</label>
+      <select id="p-currency"><option value="USD" ${pCurrency==='USD'?'selected':''}>USD</option><option value="ZiG" ${pCurrency==='ZiG'?'selected':''}>ZiG</option></select>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Stock on hand</label><input id="p-stock" type="number" value="${p.stock}"></div>
+        <div style="flex:1;"><label>Low-stock alert at</label><input id="p-low" type="number" value="${p.low_stock}"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="completeEditProduct('${p.id}')">Save changes</button>
+    `;
+  } else if(type==='settings'){
+    const rate = DB.business?.exchange_rate;
+    html = `
+      <h3>Settings</h3>
+      <label>ZiG exchange rate</label>
+      <p class="field-help" style="margin-top:0;">How many ZiG equal 1 US dollar right now. You set this manually — the app never fetches or guesses a live rate.</p>
+      <div class="btn-row" style="align-items:flex-end;">
+        <div style="flex:1;">
+          <label style="margin-top:0;">1 USD =</label>
+          <input id="settings-rate" type="number" step="0.0001" min="0" placeholder="e.g. 30000" value="${rate ?? ''}">
+        </div>
+        <div style="padding-bottom:12px;font-weight:600;color:var(--ink-600);">ZiG</div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="saveExchangeRate()">Save rate</button>
+      <div id="settings-saved" class="field-help" style="margin-top:6px;"></div>
+
+      <h3 style="margin-top:22px;">Quick converter</h3>
+      <div class="btn-row">
+        <div style="flex:1;"><label style="margin-top:0;">USD</label><input id="conv-usd" type="number" step="0.01" placeholder="0.00" oninput="convertFrom('usd')"></div>
+        <div style="flex:1;"><label style="margin-top:0;">ZiG</label><input id="conv-zig" type="number" step="0.01" placeholder="0.00" oninput="convertFrom('zig')"></div>
+      </div>
+      <p class="field-help" id="conv-help">Enter a rate above to use the converter.</p>
+
+      <div style="border-top:1px solid var(--line);margin-top:22px;padding-top:16px;">
+        <button class="btn btn-danger" onclick="logout()">Log out</button>
+      </div>
+    `;
+  }
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+  if(type==='sale') renderCart();
+  if(type==='sale'){
+    document.getElementById('sale-pay').addEventListener('change', e=>{
+      document.getElementById('sale-customer-wrap').classList.toggle('hidden', e.target.value!=='Credit (customer owes)');
+      document.getElementById('sale-cash-wrap').classList.toggle('hidden', e.target.value!=='Cash');
+    });
+  }
+  if(type==='settings'){
+    document.getElementById('conv-help').textContent = DB.business?.exchange_rate
+      ? `Using 1 USD = ${DB.business.exchange_rate} ZiG.` : 'Enter a rate above to use the converter.';
+  }
+}
+function openSettings(){ openModal('settings'); }
+async function saveExchangeRate(){
+  const val = document.getElementById('settings-rate').value;
+  const rate = val === '' ? null : parseFloat(val);
+  const savedEl = document.getElementById('settings-saved');
+  savedEl.style.color = 'var(--ink-600)';
+  savedEl.textContent = 'Saving…';
+  try{
+    const res = await apiFetch(`/api/business/${getBusinessId()}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ exchange_rate: rate })
+    });
+    const biz = await res.json();
+    if(biz.error) throw new Error(biz.error);
+    DB.business = biz;
+    savedEl.style.color = 'var(--teal-700)';
+    savedEl.textContent = rate ? 'Rate saved.' : 'Rate cleared.';
+    document.getElementById('conv-help').textContent = rate ? `Using 1 USD = ${rate} ZiG.` : 'Enter a rate above to use the converter.';
+  }catch(e){
+    savedEl.style.color = 'var(--red-600)';
+    savedEl.textContent = `Couldn't save: ${e.message}`;
+  }
+}
+function convertFrom(source){
+  const rateInput = document.getElementById('settings-rate').value;
+  const rate = parseFloat(rateInput || DB.business?.exchange_rate);
+  const usdEl = document.getElementById('conv-usd');
+  const zigEl = document.getElementById('conv-zig');
+  if(!rate || rate<=0) return;
+  if(source==='usd'){
+    const usd = parseFloat(usdEl.value);
+    zigEl.value = isNaN(usd) ? '' : (usd*rate).toFixed(2);
+  } else {
+    const zig = parseFloat(zigEl.value);
+    usdEl.value = isNaN(zig) ? '' : (zig/rate).toFixed(2);
+  }
+}
+function closeModal(){ document.getElementById('modal-backdrop').classList.add('hidden'); }
+
+/* ---------- CART / SALE (POS) ---------- */
+let cart = {};
+function currentSaleCurrency(){ return document.getElementById('sale-currency')?.value || DB.currency; }
+function renderCart(){
+  const wrap = document.getElementById('cart-products');
+  const searchEl = document.getElementById('cart-search');
+  const term = (searchEl?.value || '').trim().toLowerCase();
+  const saleCur = currentSaleCurrency();
+  let list = DB.products.filter(p=>(p.currency||'USD')===saleCur);
+  if(term) list = list.filter(p=>p.name.toLowerCase().includes(term));
+  wrap.innerHTML = list.length ? list.map(p=>{
+    const q = cart[p.id]||0;
+    return `<div class="cart-item">
+      <div class="name">${p.name}<br><span class="field-help">${fmt(p.price,saleCur)} · ${p.stock} ${p.unit} in stock${q>0?` · subtotal ${fmt(p.price*q,saleCur)}`:''}</span></div>
+      <div class="qty-ctrl">
+        <button onclick="cartQty('${p.id}',-1)">−</button>
+        <span style="min-width:18px;text-align:center;">${q}</span>
+        <button onclick="cartQty('${p.id}',1)">＋</button>
+      </div>
+    </div>`;
+  }).join('') : `<p class="field-help" style="padding:8px 0;">${term ? `No products match "${term}".` : `No products priced in ${saleCur} yet.`}</p>`;
+  renderCartSummary();
+}
+function cartQty(id,delta){
+  const p = DB.products.find(x=>x.id===id);
+  const cur = cart[id]||0;
+  let next = cur+delta;
+  if(next<0) next=0;
+  if(next>p.stock){ alert(`Only ${p.stock} ${p.unit} of ${p.name} in stock.`); return; }
+  cart[id]=next;
+  renderCart();
+  updateChangeDue();
+}
+function cartTotal(){
+  let total=0;
+  Object.entries(cart).forEach(([id,q])=>{
+    const p = DB.products.find(x=>x.id===id);
+    if(p) total += p.price*q;
+  });
+  return total;
+}
+function renderCartSummary(){
+  const saleCur = currentSaleCurrency();
+  let total=0, itemCount=0;
+  Object.entries(cart).forEach(([id,q])=>{
+    const p = DB.products.find(x=>x.id===id);
+    if(p && q>0){ total += p.price*q; itemCount += q; }
+  });
+  document.getElementById('cart-summary').innerHTML = itemCount>0
+    ? `<div class="cart-total-row"><span>${itemCount} item${itemCount>1?'s':''}</span><span>${fmt(total,saleCur)}</span></div>`
+    : `<p class="field-help" style="padding:6px 0 0;">No items added yet.</p>`;
+}
+function updateChangeDue(){
+  const el = document.getElementById('sale-change-due');
+  const input = document.getElementById('sale-cash-received');
+  if(!el || !input) return;
+  const saleCur = currentSaleCurrency();
+  const received = parseFloat(input.value);
+  if(isNaN(received)){ el.textContent=''; return; }
+  const change = received - cartTotal();
+  el.style.color = change>=0 ? 'var(--ink-600)' : 'var(--red-600)';
+  el.textContent = change>=0 ? `Change due: ${fmt(change,saleCur)}` : `Short by ${fmt(-change,saleCur)}`;
+}
+async function completeSale(){
+  const items = Object.entries(cart).filter(([,q])=>q>0).map(([product_id,qty])=>({product_id, qty}));
+  if(items.length===0){ alert('Add at least one product to the sale.'); return; }
+  const pay = document.getElementById('sale-pay').value;
+  const customer = document.getElementById('sale-customer')?.value?.trim() || '';
+  if(pay==='Credit (customer owes)' && !customer){ alert('Please enter the customer name for a credit sale.'); return; }
+  const saleCur = currentSaleCurrency();
+  const cashReceived = pay==='Cash' ? parseFloat(document.getElementById('sale-cash-received')?.value) : null;
+  const lines = items.map(({product_id,qty})=>{
+    const p = DB.products.find(x=>x.id===product_id);
+    return { name:p.name, qty, unit:p.unit, price:p.price, lineTotal:p.price*qty };
+  });
+  const total = lines.reduce((s,l)=>s+l.lineTotal,0);
+  try{
+    const res = await apiFetch('/api/sale', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ business_id:getBusinessId(), items, pay, customer })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    cart = {};
+    await refreshState();
+    renderReceipt(lines, total, pay, customer, cashReceived, saleCur);
+  }catch(e){ alert('Could not complete sale: '+e.message); }
+}
+function renderReceipt(lines, total, pay, customer, cashReceived, saleCur){
+  const change = (cashReceived!=null && !isNaN(cashReceived)) ? cashReceived-total : null;
+  document.getElementById('modal-body').innerHTML = `
+    <h3>Sale complete</h3>
+    <div class="card" style="box-shadow:none;border-style:dashed;">
+      ${lines.map(l=>`<div class="list-item"><div class="li-left"><div class="title">${l.name}</div><div class="sub">${l.qty} ${l.unit} × ${fmt(l.price,saleCur)}</div></div><div class="li-right">${fmt(l.lineTotal,saleCur)}</div></div>`).join('')}
+      <div class="cart-total-row"><span>Total</span><span>${fmt(total,saleCur)}</span></div>
+      <p class="field-help" style="margin-top:8px;">${pay}${customer?(' · '+customer):''}</p>
+      ${change!=null ? `<p class="field-help">Cash received: ${fmt(cashReceived,saleCur)}${change>=0?` · Change due: <b>${fmt(change,saleCur)}</b>`:` · <span style="color:var(--red-600);">Short by ${fmt(-change,saleCur)}</span>`}</p>` : ''}
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px;" onclick="closeModal()">Done</button>
+  `;
+}
+async function completeExpense(){
+  const desc = document.getElementById('exp-desc').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const currency = document.getElementById('exp-currency').value;
+  const pay = document.getElementById('exp-pay').value;
+  const on_credit = !!document.getElementById('exp-on-credit')?.checked;
+  const supplier = on_credit ? (document.getElementById('exp-supplier').value.trim() || null) : null;
+  if(!desc || !amount || amount<=0){ alert('Please enter a description and a valid amount.'); return; }
+  try{
+    const res = await apiFetch('/api/transactions', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ business_id:getBusinessId(), type:'expense', amount, currency, category:null, desc, pay, on_credit, supplier })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    closeModal();
+    await refreshState();
+  }catch(e){ alert('Could not save expense: '+e.message); }
+}
+async function completeAddProduct(){
+  const name = document.getElementById('p-name').value.trim();
+  const unit = document.getElementById('p-unit').value;
+  const price = parseFloat(document.getElementById('p-price').value)||0;
+  const cost = parseFloat(document.getElementById('p-cost').value)||0;
+  const currency = document.getElementById('p-currency').value;
+  const stock = parseInt(document.getElementById('p-stock').value)||0;
+  const low_stock = parseInt(document.getElementById('p-low').value)||3;
+  if(!name){ alert('Please enter a product name.'); return; }
+  try{
+    await addProductToServer({ name, unit, price, cost, currency, stock, low_stock });
+    closeModal();
+    await refreshState();
+  }catch(e){ alert('Could not save product: '+e.message); }
+}
+async function completeEditProduct(id){
+  const name = document.getElementById('p-name').value.trim();
+  const unit = document.getElementById('p-unit').value;
+  const price = parseFloat(document.getElementById('p-price').value)||0;
+  const cost = parseFloat(document.getElementById('p-cost').value)||0;
+  const currency = document.getElementById('p-currency').value;
+  const stock = parseInt(document.getElementById('p-stock').value)||0;
+  const low_stock = parseInt(document.getElementById('p-low').value)||3;
+  if(!name){ alert('Please enter a product name.'); return; }
+  try{
+    const res = await apiFetch(`/api/products/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, unit, price, cost, currency, stock, low_stock })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    closeModal();
+    await refreshState();
+  }catch(e){ alert('Could not save changes: '+e.message); }
+}
+
+/* ---------- DESCRIBE A TRANSACTION (AI interprets, owner confirms, then it's saved) ---------- */
+async function interpretTransaction(){
+  const input = document.getElementById('smart-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const resultBox = document.getElementById('smart-result');
+  resultBox.innerHTML = `<p class="field-help">Thinking…</p>`;
+  try{
+    const res = await apiFetch('/api/interpret', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ description:text })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    renderSmartConfirm(data, text);
+  }catch(e){
+    resultBox.innerHTML = `<p class="field-help" style="color:var(--red-600);">Couldn't work that out: ${e.message}</p>`;
+  }
+}
+
+function renderSmartConfirm(sugg, originalText){
+  const resultBox = document.getElementById('smart-result');
+  const categories = ['Rent','Wages','Transport','Stock & Supplies','Utilities','Marketing','Other'];
+  const validTypes = ['expense','owner_withdrawal','other_income','customer_payment','supplier_payment'];
+  const type = validTypes.includes(sugg.type) ? sugg.type : 'expense';
+  const desc = (sugg.description || originalText).replace(/"/g,'&quot;');
+  const onCredit = type==='expense' && !!sugg.on_credit;
+  const supplierVal = (sugg.supplier||'').replace(/"/g,'&quot;');
+  const customerVal = (sugg.customer||'').replace(/"/g,'&quot;');
+  resultBox.innerHTML = `
+    <div class="card" style="margin-top:10px;background:var(--sand-100);border:1.5px dashed var(--teal-500);box-shadow:none;">
+      <p class="field-help" style="margin-top:0;">Here's what I understood — check and edit before saving:</p>
+      <label style="margin-top:0;">This was</label>
+      <select id="smart-type">
+        <option value="expense" ${type==='expense'?'selected':''}>Business expense</option>
+        <option value="owner_withdrawal" ${type==='owner_withdrawal'?'selected':''}>Owner withdrawal (personal, not a business expense)</option>
+        <option value="other_income" ${type==='other_income'?'selected':''}>Other income (not a product sale)</option>
+        <option value="customer_payment" ${type==='customer_payment'?'selected':''}>Customer paying back what they owed</option>
+        <option value="supplier_payment" ${type==='supplier_payment'?'selected':''}>Paying a supplier what you owed</option>
+      </select>
+      <div id="smart-category-wrap" class="${type==='expense'?'':'hidden'}">
+        <label>Category</label>
+        <select id="smart-category">
+          ${categories.map(c=>`<option ${sugg.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-top:12px;">
+          <input type="checkbox" id="smart-on-credit" style="width:auto;" ${onCredit?'checked':''} onchange="document.getElementById('smart-supplier-wrap').classList.toggle('hidden', !this.checked)">
+          Bought on credit — I still owe a supplier for this
+        </label>
+        <div id="smart-supplier-wrap" class="${onCredit?'':'hidden'}">
+          <label>Supplier name</label>
+          <input id="smart-supplier" value="${supplierVal}" placeholder="e.g. City Wholesalers">
+        </div>
+      </div>
+      <div id="smart-customer-wrap" class="${type==='customer_payment'?'':'hidden'}">
+        <label>Customer name</label>
+        <input id="smart-customer" value="${customerVal}" placeholder="e.g. Sekai">
+      </div>
+      <div id="smart-supplier-payment-wrap" class="${type==='supplier_payment'?'':'hidden'}">
+        <label>Supplier name</label>
+        <input id="smart-supplier-pay" value="${supplierVal}" placeholder="e.g. City Wholesalers">
+      </div>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Amount</label><input id="smart-amount" type="number" step="0.01" value="${sugg.amount ?? ''}"></div>
+        <div style="flex:1;"><label>Currency</label>
+          <select id="smart-currency">
+            <option value="USD" ${(sugg.currency||DB.currency)==='USD'?'selected':''}>USD</option>
+            <option value="ZiG" ${(sugg.currency||DB.currency)==='ZiG'?'selected':''}>ZiG</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <div style="flex:1;"><label>Payment method</label>
+          <select id="smart-pay"><option>Cash</option><option>Mobile money</option><option>Bank transfer</option></select>
+        </div>
+      </div>
+      <label>Description</label>
+      <input id="smart-desc" value="${desc}">
+      ${sugg.needs_clarification ? `<p class="field-help" style="color:#8A5A00;">I wasn't fully sure about this one — please double-check the details above.</p>` : ''}
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="confirmSmartTransaction()">Confirm &amp; save</button>
+    </div>
+  `;
+  document.getElementById('smart-type').addEventListener('change', e=>{
+    const t = e.target.value;
+    document.getElementById('smart-category-wrap').classList.toggle('hidden', t!=='expense');
+    document.getElementById('smart-customer-wrap').classList.toggle('hidden', t!=='customer_payment');
+    document.getElementById('smart-supplier-payment-wrap').classList.toggle('hidden', t!=='supplier_payment');
+  });
+}
+
+async function confirmSmartTransaction(){
+  const type = document.getElementById('smart-type').value;
+  const category = type==='expense' ? document.getElementById('smart-category').value : null;
+  const amount = parseFloat(document.getElementById('smart-amount').value);
+  const currency = document.getElementById('smart-currency').value;
+  const pay = document.getElementById('smart-pay').value;
+  const desc = document.getElementById('smart-desc').value.trim();
+  let supplier = null, on_credit = false, customer = null;
+  if(type==='expense'){
+    on_credit = !!document.getElementById('smart-on-credit')?.checked;
+    if(on_credit){
+      supplier = document.getElementById('smart-supplier').value.trim() || null;
+    }
+  } else if(type==='customer_payment'){
+    customer = document.getElementById('smart-customer').value.trim();
+  } else if(type==='supplier_payment'){
+    supplier = document.getElementById('smart-supplier-pay').value.trim();
+  }
+  if(!amount || amount<=0){ alert('Please enter a valid amount.'); return; }
+  if(!desc){ alert('Please enter a short description.'); return; }
+  try{
+    const res = await apiFetch('/api/transactions', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ business_id:getBusinessId(), type, amount, currency, category, desc, pay, supplier, on_credit, customer })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    document.getElementById('smart-input').value = '';
+    document.getElementById('smart-result').innerHTML = `<p class="field-help" style="color:var(--teal-700);">Saved.</p>`;
+    await refreshState();
+  }catch(e){ alert('Could not save: '+e.message); }
+}
+
+/* ---------- RENDER ---------- */
+async function setCurrency(c){
+  DB.currency = c;
+  renderAll();
+  try{
+    await apiFetch(`/api/business/${getBusinessId()}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ currency:c })
+    });
+  }catch(e){}
+}
+
+function renderAll(){
+  document.getElementById('tb-bizname').textContent = DB.business?.name || 'My Business';
+  document.getElementById('tb-sub').textContent = DB.business?.type || '';
+  document.getElementById('tb-currency').value = DB.currency;
+
+  let unconverted = 0;
+  const rv = (amount, fromCurrency) => {
+    const r = convertToReport(amount, fromCurrency);
+    if(!r.ok) unconverted++;
+    return r.value;
+  };
+
+  const todays = DB.transactions.filter(t=>isToday(t.date));
+  const salesToday = todays.filter(t=>t.type==='sale').reduce((s,t)=>s+rv(t.amount,t.currency),0);
+  const costToday = todays.filter(t=>t.type==='sale').reduce((s,t)=>s+rv(t.cost||0,t.currency),0);
+  const expToday = todays.filter(t=>t.type==='expense').reduce((s,t)=>s+rv(t.amount,t.currency),0);
+  const grossProfit = salesToday - costToday;
+  const estProfit = grossProfit - expToday;
+
+  const customerOwed = DB.transactions.reduce((s,t)=>s+rv(t.owed||0,t.currency),0)
+    - DB.transactions.filter(t=>t.type==='customer_payment').reduce((s,t)=>s+rv(t.amount,t.currency),0);
+  const supplierOwed = DB.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+rv(t.owed_to_supplier||0,t.currency),0)
+    - DB.transactions.filter(t=>t.type==='supplier_payment').reduce((s,t)=>s+rv(t.amount,t.currency),0);
+
+  document.getElementById('stat-sales').textContent = money(salesToday);
+  document.getElementById('stat-expenses').textContent = money(expToday);
+  document.getElementById('stat-profit').textContent = money(estProfit);
+  document.getElementById('stat-owed').textContent = money(customerOwed);
+  document.getElementById('stat-supplier-owed').textContent = money(supplierOwed);
+
+  const insight = document.getElementById('insight-box');
+  if(todays.length===0){
+    insight.innerHTML = `<b>No sales recorded yet today.</b><br>Tap "New sale" above to record your first sale of the day.`;
+  } else {
+    insight.innerHTML = `You sold <b>${money(salesToday)}</b> worth of products today. The estimated cost of goods sold was <b>${money(costToday)}</b>, giving a gross profit of <b>${money(grossProfit)}</b>. After <b>${money(expToday)}</b> in recorded expenses, your estimated profit is <b>${money(estProfit)}</b>. This may be incomplete if not all costs were recorded.`;
+  }
+
+  const otherCurrency = DB.currency==='USD' ? 'ZiG' : 'USD';
+  const rateBox = document.getElementById('rate-warning-box');
+  if(rateBox){
+    rateBox.innerHTML = unconverted>0
+      ? `<div class="warn-card">${ICON_WARN}<span>${unconverted} record${unconverted>1?'s are':' is'} in ${otherCurrency} and couldn't be converted to ${DB.currency} for these totals — <a href="#" onclick="openSettings();return false;" style="color:#8A5A00;font-weight:700;">set your exchange rate</a> in Settings.</span></div>` : '';
+  }
+
+  const low = DB.products.filter(p=>p.stock<=p.low_stock);
+  document.getElementById('lowstock-box').innerHTML = low.length
+    ? `<div class="warn-card">${ICON_WARN}<span><b>${low.map(p=>p.name).join(', ')}</b> ${low.length>1?'are':'is'} running low on stock.</span></div>` : '';
+
+  renderRecent();
+  renderTxnList();
+  renderStockList();
+}
+
+function txnRow(t){
+  const labels = {sale:'Sale', expense:'Expense', owner_withdrawal:'Withdrawal', other_income:'Other income', customer_payment:'Customer payment', supplier_payment:'Supplier payment'};
+  const isIncome = t.type==='sale' || t.type==='other_income' || t.type==='customer_payment';
+  const isNeutral = t.type==='owner_withdrawal' || t.type==='supplier_payment';
+  const onCredit = t.type==='expense' && Number(t.owed_to_supplier||0) > 0;
+  const tagClass = isIncome ? 'sale' : (isNeutral ? 'stock' : 'expense');
+  const tagLabel = labels[t.type] || t.type;
+  const sign = isIncome ? '+' : '−';
+  const color = isIncome ? 'var(--teal-700)' : (isNeutral ? '#8A5A00' : 'var(--red-600)');
+  const catSuffix = t.category ? ` · ${t.category}` : '';
+  const txnCurrency = t.currency || 'USD';
+  const supplierSuffix = onCredit
+    ? ` · owes ${t.supplier ? t.supplier+' ' : ''}${fmt(t.owed_to_supplier, txnCurrency)}`
+    : (t.supplier ? ` · ${t.supplier}` : '');
+  const creditTag = onCredit ? ` <span class="tag stock">On credit</span>` : '';
+  const differs = txnCurrency !== DB.currency;
+  const conv = differs ? convertToReport(t.amount, txnCurrency) : null;
+  const amountDisplay = fmt(t.amount, txnCurrency) // always the real, original, un-distorted figure
+    + (differs ? ` <span style="font-size:11px;font-weight:600;opacity:.7;">${txnCurrency}</span>` : '');
+  const convertedLine = (differs && conv?.ok)
+    ? `<div class="field-help" style="margin-top:1px;">≈ ${money(conv.value)}</div>` : '';
+  return `<div class="list-item">
+    <div class="li-left">
+      <div class="title"><span class="tag ${tagClass}">${tagLabel}</span>${creditTag}${t.desc}</div>
+      <div class="sub">${new Date(t.date).toLocaleString()} · ${t.pay}${catSuffix}${t.customer?(' · '+t.customer):''}${supplierSuffix}</div>
+    </div>
+    <div class="li-right" style="color:${color}">${sign}${amountDisplay}${convertedLine}</div>
+  </div>`;
+}
+
+function renderRecent(){
+  const recent = [...DB.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('recent-list').innerHTML = recent.length
+    ? recent.map(txnRow).join('')
+    : `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions yet. Tap "New sale" to record your first one.</div>`;
+}
+function renderTxnList(){
+  const all = [...DB.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('txn-list').innerHTML = all.length
+    ? all.map(txnRow).join('')
+    : `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions recorded yet.</div>`;
+}
+function renderStockList(){
+  document.getElementById('stock-list').innerHTML = DB.products.length ? DB.products.map(p=>{
+    const pCur = p.currency || 'USD';
+    return `
+    <div class="list-item">
+      <div class="li-left" style="cursor:pointer;" onclick="openModal('edit-product','${p.id}')">
+        <div class="title">${p.name}</div>
+        <div class="sub">${fmt(p.price,pCur)} sell · ${fmt(p.cost,pCur)} cost · ${p.stock} ${p.unit} in stock${pCur!==DB.currency?` · <span style="opacity:.7;">${pCur}</span>`:''}${p.stock<=p.low_stock?' · <span style="color:var(--red-600);font-weight:700;">low stock</span>':''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="li-right">${p.stock}</div>
+        <button class="edit-btn" title="Edit ${p.name}" onclick="openModal('edit-product','${p.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="delete-btn" title="Delete ${p.name}" onclick="deleteProduct('${p.id}','${p.name.replace(/'/g,"\\'")}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6 7l1 13a1.5 1.5 0 0 0 1.5 1.4h7a1.5 1.5 0 0 0 1.5-1.4l1-13"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state"><div class="big">${ICON_BOX}</div>No products yet. Tap "Add product" to get started.</div>`;
+}
+async function deleteProduct(id, name){
+  if(!confirm(`Delete "${name}"? This can't be undone. Past sales of this product stay in your records.`)) return;
+  try{
+    const res = await apiFetch(`/api/products/${id}`, { method:'DELETE' });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    await refreshState();
+  }catch(e){ alert('Could not delete product: '+e.message); }
+}
+
+/* ---------- ASK AI (real free LLM, grounded on real Supabase data, but not limited to it) ---------- */
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// Turns the AI's plain-text reply (which may use **bold** and -/1. list
+// lines) into safe, readable HTML for a chat bubble — no external markdown
+// library needed, and everything is HTML-escaped first so the model's
+// output can never inject markup.
+function formatAiText(text){
+  if(!text) return '';
+  let escaped = escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const blocks = escaped.split(/\n\s*\n/);
+  return blocks.map(block=>{
+    const lines = block.split('\n').map(l=>l.trim()).filter(l=>l.length);
+    if(!lines.length) return '';
+    if(lines.every(l=>/^[-*•]\s+/.test(l))){
+      return '<ul class="ai-list">' + lines.map(l=>`<li>${l.replace(/^[-*•]\s+/,'')}</li>`).join('') + '</ul>';
+    }
+    if(lines.every(l=>/^\d+[.)]\s+/.test(l))){
+      return '<ol class="ai-list">' + lines.map(l=>`<li>${l.replace(/^\d+[.)]\s+/,'')}</li>`).join('') + '</ol>';
+    }
+    return `<p class="ai-p">${lines.join('<br>')}</p>`;
+  }).join('');
+}
+function addAiMsg(text, who){
+  const el = document.createElement('div');
+  el.className = 'ai-msg '+who;
+  if(who==='bot') el.innerHTML = formatAiText(text);
+  else el.textContent = text;
+  document.getElementById('ai-thread').appendChild(el);
+  el.scrollIntoView({behavior:'smooth', block:'end'});
+  return el;
+}
+async function askAI(preset){
+  const input = document.getElementById('ai-input');
+  const q = (preset || input.value || '').trim();
+  if(!q) return;
+  addAiMsg(q, 'user');
+  input.value='';
+  const thinking = addAiMsg('Thinking…', 'bot');
+  try{
+    const res = await apiFetch('/api/ask', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ business_id:getBusinessId(), question:q, mode:'business' })
+    });
+    const data = await res.json();
+    thinking.remove();
+    addAiMsg(data.answer || `Sorry, something went wrong: ${data.error || 'unknown error'}`, 'bot');
+  }catch(e){
+    thinking.remove();
+    addAiMsg("Couldn't reach the AI backend. Make sure the local server is running (npm start) and GROQ_API_KEY is set.", 'bot');
+  }
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.activeElement.id==='ai-input') askAI();
+});
+
+/* ---------- LEARN (curated instant answers, falls back to the same real AI for anything else) ---------- */
+const LESSONS = [
+  {title:'Sales vs profit', keywords:['sales vs profit','sales and profit','revenue'], explain:"Sales is all the money coming in from what you sold. Profit is what's left after you pay for the goods and your other costs.", example:"If you buy a drink for $0.50 and sell it for $1, you keep $0.50 before other costs — that's not automatically your final profit."},
+  {title:'Cost of goods sold', keywords:['cost of goods','cogs','cost of sales'], explain:'This is what it actually cost you to buy or make the things you sold — not your rent or transport, just the stock itself.', example:'If you sold 10 loaves of bread that cost you $0.65 each, your cost of goods sold is $6.50.'},
+  {title:'Gross profit', keywords:['gross profit'], explain:'Gross profit is your sales minus the cost of the goods you sold, before any other business expenses.', example:'Sold $50 of goods that cost you $30 to buy → gross profit is $20.'},
+  {title:'Net profit', keywords:['net profit'], explain:'Net profit is what is left after ALL your costs — goods, rent, transport, airtime, everything — are subtracted from sales.', example:'Gross profit $20, minus $5 in transport and airtime, leaves $15 net profit.'},
+  {title:'Cash flow', keywords:['cash flow','what is cash flow'], explain:'Cash flow is the actual cash moving in and out of your business — different from profit, because you can be profitable on paper but short of cash if customers have not paid you yet.', example:'You made a $50 credit sale (profit on paper) but received $0 cash until the customer pays.'},
+  {title:'Pricing your products', keywords:['pricing','price my products','how do i price'], explain:'A good price covers what the item cost you, a share of your other expenses, and a fair profit on top.', example:'Cost $0.60 + expenses share $0.15 + profit $0.25 = sell at $1.00.'},
+  {title:'Managing stock', keywords:['managing stock','inventory'], explain:'Keeping the right amount of stock means you rarely run out of what sells, but you are not tying up cash in things sitting on the shelf.', example:"If cooking oil always sells out by Thursday, that's a sign to reorder earlier."},
+  {title:'Customer credit and debt', keywords:['customers who owe','customer debt','customer credit'], explain:'When you let customers pay later, track exactly who owes you and how much — it is real money you are still waiting to receive.', example:"If Sekai owes you $10 from a credit sale, that $10 isn't in your pocket yet, even though the sale is recorded."},
+  {title:'Supplier debt', keywords:['supplier debt','owe a supplier','owe suppliers'], explain:'When you buy stock or supplies on credit, you owe that supplier money until you pay it off — it works just like customer debt, but in the other direction.', example:"If you get $30 of stock from a supplier on credit, you owe them $30 until you pay that bill."},
+  {title:'Budgeting for a slow month', keywords:['budget','budgeting','slow month'], explain:'A budget is simply a plan for where your money will go before you spend it, so a quiet month doesn\'t catch you short.', example:'Setting aside $20 a week for rent before spending on anything else, so a slow week still covers it.'},
+  {title:'Separating personal and business money', keywords:['personal and business money','separate personal'], explain:'Mixing the two makes it hard to know if the business is really making a profit. Money you take out for yourself is a withdrawal, not a business expense.', example:'Taking $10 home for groceries is a withdrawal, not a business expense.'},
+  {title:'Saving and reinvesting', keywords:['saving','reinvest'], explain:'Putting some profit aside — instead of spending all of it — helps you buy more stock, cover emergencies, or grow.', example:'Saving $5 from every $50 in profit builds a stock-buying fund over a few months.'}
+];
+
+function findLesson(q){
+  const ql = q.toLowerCase();
+  return LESSONS.find(l => l.keywords.some(k=>ql.includes(k)) || ql.includes(l.title.toLowerCase()));
+}
+function lessonCardHtml(l){
+  return `<div class="card lesson-card">
+    <h4>${l.title}</h4>
+    <p>${l.explain}</p>
+    <div class="example">${l.example}</div>
+  </div>`;
+}
+function renderLearnTopics(){
+  const box = document.getElementById('learn-topics');
+  if(box) box.innerHTML = LESSONS.map(l=>`
+    <div style="cursor:pointer;" onclick="askLearn('${l.title.replace(/'/g,"\\'")}')">${lessonCardHtml(l)}</div>
+  `).join('');
+}
+async function askLearn(preset){
+  const input = document.getElementById('learn-input');
+  const q = (preset || input.value || '').trim();
+  if(!q) return;
+  if(input) input.value = '';
+  const box = document.getElementById('learn-answer');
+  const local = findLesson(q);
+  if(local){ box.innerHTML = lessonCardHtml(local); return; }
+  box.innerHTML = `<div class="card"><p class="field-help" style="margin:0;">Thinking…</p></div>`;
+  try{
+    const res = await apiFetch('/api/ask', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ question:q, mode:'learn' })
+    });
+    const data = await res.json();
+    box.innerHTML = data.answer
+      ? `<div class="card">${formatAiText(data.answer)}</div>`
+      : `<div class="card"><p style="margin:0;">Sorry, something went wrong: ${escapeHtml(data.error || 'unknown error')}</p></div>`;
+  }catch(e){
+    box.innerHTML = `<div class="card"><p style="margin:0;color:var(--red-600);">Couldn't reach the AI backend. Make sure the local server is running (npm start).</p></div>`;
+  }
+}
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.activeElement.id==='learn-input') askLearn();
+});
+
+/* ---------- BOOT ---------- */
+async function boot(){
+  renderLearnTopics();
+  try{
+    const cfgRes = await fetch('/api/config');
+    const cfg = await cfgRes.json();
+    if(!cfg.supabaseUrl || !cfg.supabaseAnonKey){
+      document.getElementById('auth-error').textContent = 'Server is missing Supabase configuration — check .env (SUPABASE_URL, SUPABASE_ANON_KEY) and restart the server.';
+      return;
+    }
+    sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){
+      document.getElementById('auth-screen').classList.add('hidden');
+      await loadMyBusiness();
+    }
+  }catch(e){
+    document.getElementById('auth-error').textContent = "Couldn't reach the local server. Make sure it's running (npm start).";
+  }
+}
+boot();
+</script>
+
+<div id="modal-backdrop" class="modal-backdrop hidden" onclick="if(event.target===this) closeModal()">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+</body>
+</html>
