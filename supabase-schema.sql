@@ -24,6 +24,7 @@ create table products (
   price numeric(12,2) default 0,
   cost numeric(12,2) default 0,
   currency text default 'USD', -- the currency this product's price/cost are quoted in
+  category text default 'General', -- e.g. Groceries, Drinks, Hardware — sales auto-inherit this
   stock integer default 0,
   low_stock integer default 3,
   created_at timestamptz default now()

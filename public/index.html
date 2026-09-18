@@ -18,6 +18,7 @@
     --teal-500:#158A73;
     --gold-500:#E8A33D;
     --gold-100:#FBEBD2;
+    --logo-green:#3ECF8E;
     --sand-50:#FAF9F5;
     --sand-100:#F2EFE6;
     --ink-900:#1C2521;
@@ -43,11 +44,16 @@
 
   /* Top bar */
   .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:18px 20px 14px;background:var(--teal-900);color:#fff;
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;
+    padding:16px 16px 14px;background:var(--teal-900);color:#fff;
   }
-  .topbar h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.2px;}
-  .topbar .biz{font-size:12px;color:#BFE0D6;margin-top:2px;}
+  .topbar-center{text-align:center;min-width:0;}
+  .topbar-controls{justify-self:end;display:flex;align-items:center;gap:8px;}
+  .logo-text{font-size:23px;font-weight:800;letter-spacing:.2px;line-height:1;}
+  .logo-mari{color:var(--gold-500);}
+  .logo-wise{color:var(--logo-green);}
+  .topbar h1{font-size:14px;margin:3px 0 0;font-weight:600;color:#E3EFEA;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbar .biz{font-size:11px;color:#BFE0D6;margin-top:1px;}
   .topbar select{
     background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
     border-radius:8px;padding:5px 8px;font-size:12px;
@@ -196,9 +202,8 @@
   .stat.profit .icon-badge{background:var(--gold-100);color:#8A5A00;}
   .stat .icon-badge svg{width:14px;height:14px;}
 
-  .app-name{font-size:11px;font-weight:700;color:var(--gold-500);letter-spacing:.3px;margin-bottom:1px;}
-  .brand-mark{display:flex;align-items:center;gap:8px;}
-  .brand-mark svg{width:24px;height:24px;flex-shrink:0;}
+  .brand-mark{display:flex;align-items:center;justify-content:center;gap:7px;}
+  .brand-mark svg{width:22px;height:22px;flex-shrink:0;}
   .brand-coin{color:var(--gold-500);}
   .topbar{border-bottom:3px solid var(--gold-500);}
   .warn-card{display:flex;align-items:flex-start;gap:9px;}
@@ -264,7 +269,7 @@
 
 <div id="auth-screen" class="entry-screen">
   <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg></div>
-  <h1>MariWise</h1>
+  <h1><span style="color:var(--gold-500);">Mari</span><span style="color:var(--logo-green);">Wise</span></h1>
   <span class="tag">Know your numbers. Grow your business.</span>
   <div class="auth-tabs">
     <button id="tab-login" class="active" onclick="switchAuthTab('login')">Log in</button>
@@ -308,15 +313,16 @@
 
 <div id="app" class="hidden">
   <div class="topbar">
-    <div class="brand-mark">
-      <svg class="brand-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg>
-      <div>
-        <div class="app-name">MariWise</div>
-        <h1 id="tb-bizname">My Business</h1>
-        <div class="biz" id="tb-sub">Today</div>
+    <div></div>
+    <div class="topbar-center">
+      <div class="brand-mark">
+        <svg class="brand-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 15c.6.7 1.6 1.2 3 1.2 1.8 0 3-.9 3-2.1 0-1.4-1.3-1.9-3-2.3-1.7-.4-3-.9-3-2.3C9 8.3 10.2 7.4 12 7.4c1.4 0 2.4.5 3 1.2"/><path d="M12 6v1.2M12 16.2V18"/></svg>
+        <span class="logo-text"><span class="logo-mari">Mari</span><span class="logo-wise">Wise</span></span>
       </div>
+      <h1 id="tb-bizname">My Business</h1>
+      <div class="biz" id="tb-sub">Today</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div class="topbar-controls">
       <select id="tb-currency" onchange="setCurrency(this.value)">
         <option value="USD">USD</option><option value="ZiG">ZiG</option>
       </select>
@@ -380,10 +386,15 @@
         </div>
       </div>
       <div class="stat-row" style="margin-top:10px;">
-        <div class="stat expense" style="flex:1;">
+        <div class="stat expense">
           <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
           <div class="label">You owe suppliers</div>
           <div class="value" id="stat-supplier-owed">$0.00</div>
+        </div>
+        <div class="stat">
+          <div class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 7a5 5 0 0 0-5-2 4.5 4.5 0 0 0 0 9 4.5 4.5 0 0 1 0 9 5 5 0 0 1-5-2"/></svg></div>
+          <div class="label">Other income today</div>
+          <div class="value" id="stat-other-income">$0.00</div>
         </div>
       </div>
 
@@ -402,6 +413,29 @@
         <button class="btn btn-primary" onclick="openModal('sale')">＋ Sale</button>
         <button class="btn btn-outline" onclick="openModal('expense')">＋ Expense</button>
       </div>
+
+      <div class="card" style="margin-bottom:12px;">
+        <label style="margin-top:0;">Filter by type</label>
+        <select id="txn-filter-type" onchange="renderTxnList()">
+          <option value="">All types</option>
+          <option value="sale">Sales</option>
+          <option value="expense">Expenses</option>
+          <option value="owner_withdrawal">Owner withdrawals</option>
+          <option value="other_income">Other income</option>
+          <option value="customer_payment">Customer payments</option>
+          <option value="supplier_payment">Supplier payments</option>
+        </select>
+        <div class="btn-row">
+          <div style="flex:1;"><label>From</label><input type="date" id="txn-filter-from" onchange="renderTxnList()"></div>
+          <div style="flex:1;"><label>To</label><input type="date" id="txn-filter-to" onchange="renderTxnList()"></div>
+        </div>
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="downloadReport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+          Download PDF report for this range
+        </button>
+        <p class="field-help" id="report-range-help">Pick a From and To date above, then tap to download a P&amp;L report for that period.</p>
+      </div>
+
       <div class="card" id="txn-list"></div>
     </section>
 
@@ -467,7 +501,7 @@
       <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>Stock
     </button>
     <button class="navbtn" data-v="learn" onclick="showView('learn')">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.8A2.3 2.3 0 0 1 6.3 2.5H20v17.2H6.3A2.3 2.3 0 0 0 4 21.9Z"/><path d="M4 19.5a2.3 2.3 0 0 1 2.3-2.3H20"/></svg></span>Learn
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5h6.2A2.8 2.8 0 0 1 12 11.3V21a2.3 2.3 0 0 0-2.3-2.3H3Z"/><path d="M21 8.5h-6.2A2.8 2.8 0 0 0 12 11.3V21a2.3 2.3 0 0 1 2.3-2.3H21Z"/><path d="M14.8 2.2 18.3 5.7 13 11l-3 .7.7-3Z"/></svg></span>Learn
     </button>
   </nav>
 </div>
@@ -689,6 +723,10 @@ function openModal(type, arg){
       <h3>Record an expense</h3>
       <label>What was it for?</label>
       <input id="exp-desc" placeholder="e.g. Transport, airtime, rent">
+      <label>Category</label>
+      <select id="exp-category">
+        <option>Rent</option><option>Wages</option><option>Transport</option><option>Stock &amp; Supplies</option><option>Utilities</option><option>Marketing</option><option>Other</option>
+      </select>
       <div class="btn-row">
         <div style="flex:1;"><label>Amount</label><input id="exp-amount" type="number" step="0.01" placeholder="0.00"></div>
         <div style="flex:1;"><label>Currency</label>
@@ -712,6 +750,10 @@ function openModal(type, arg){
       <h3>Add a product</h3>
       <label>Product name</label>
       <input id="p-name" placeholder="e.g. Sugar (2kg)">
+      <label>Category</label>
+      <input id="p-category" list="p-category-list" placeholder="e.g. Groceries, Drinks, Hardware" value="General">
+      <datalist id="p-category-list">${productCategoryOptions()}</datalist>
+      <p class="field-help" style="margin-top:0;">Sales of this product will be classified under this category automatically.</p>
       <label>Unit</label>
       <select id="p-unit"><option>piece</option><option>bottle</option><option>box</option><option>kg</option><option>g</option><option>litre</option><option>pack</option></select>
       <div class="btn-row">
@@ -735,6 +777,9 @@ function openModal(type, arg){
       <h3>Edit product</h3>
       <label>Product name</label>
       <input id="p-name" value="${p.name.replace(/"/g,'&quot;')}">
+      <label>Category</label>
+      <input id="p-category" list="p-category-list" value="${(p.category||'General').replace(/"/g,'&quot;')}">
+      <datalist id="p-category-list">${productCategoryOptions()}</datalist>
       <label>Unit</label>
       <select id="p-unit">${units.map(u=>`<option ${p.unit===u?'selected':''}>${u}</option>`).join('')}</select>
       <div class="btn-row">
@@ -933,6 +978,7 @@ function renderReceipt(lines, total, pay, customer, cashReceived, saleCur){
 }
 async function completeExpense(){
   const desc = document.getElementById('exp-desc').value.trim();
+  const category = document.getElementById('exp-category').value;
   const amount = parseFloat(document.getElementById('exp-amount').value);
   const currency = document.getElementById('exp-currency').value;
   const pay = document.getElementById('exp-pay').value;
@@ -942,7 +988,7 @@ async function completeExpense(){
   try{
     const res = await apiFetch('/api/transactions', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ business_id:getBusinessId(), type:'expense', amount, currency, category:null, desc, pay, on_credit, supplier })
+      body: JSON.stringify({ business_id:getBusinessId(), type:'expense', amount, currency, category, desc, pay, on_credit, supplier })
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
@@ -950,8 +996,13 @@ async function completeExpense(){
     await refreshState();
   }catch(e){ alert('Could not save expense: '+e.message); }
 }
+function productCategoryOptions(){
+  const cats = [...new Set(DB.products.map(p=>p.category||'General'))].sort();
+  return cats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join('');
+}
 async function completeAddProduct(){
   const name = document.getElementById('p-name').value.trim();
+  const category = document.getElementById('p-category').value.trim() || 'General';
   const unit = document.getElementById('p-unit').value;
   const price = parseFloat(document.getElementById('p-price').value)||0;
   const cost = parseFloat(document.getElementById('p-cost').value)||0;
@@ -960,13 +1011,14 @@ async function completeAddProduct(){
   const low_stock = parseInt(document.getElementById('p-low').value)||3;
   if(!name){ alert('Please enter a product name.'); return; }
   try{
-    await addProductToServer({ name, unit, price, cost, currency, stock, low_stock });
+    await addProductToServer({ name, category, unit, price, cost, currency, stock, low_stock });
     closeModal();
     await refreshState();
   }catch(e){ alert('Could not save product: '+e.message); }
 }
 async function completeEditProduct(id){
   const name = document.getElementById('p-name').value.trim();
+  const category = document.getElementById('p-category').value.trim() || 'General';
   const unit = document.getElementById('p-unit').value;
   const price = parseFloat(document.getElementById('p-price').value)||0;
   const cost = parseFloat(document.getElementById('p-cost').value)||0;
@@ -977,7 +1029,7 @@ async function completeEditProduct(id){
   try{
     const res = await apiFetch(`/api/products/${id}`, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name, unit, price, cost, currency, stock, low_stock })
+      body: JSON.stringify({ name, category, unit, price, cost, currency, stock, low_stock })
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
@@ -1009,6 +1061,7 @@ async function interpretTransaction(){
 function renderSmartConfirm(sugg, originalText){
   const resultBox = document.getElementById('smart-result');
   const categories = ['Rent','Wages','Transport','Stock & Supplies','Utilities','Marketing','Other'];
+  const incomeCategories = ['Loan','Grant or Donation','Refund','Owner Contribution','Interest','Other'];
   const validTypes = ['expense','owner_withdrawal','other_income','customer_payment','supplier_payment'];
   const type = validTypes.includes(sugg.type) ? sugg.type : 'expense';
   const desc = (sugg.description || originalText).replace(/"/g,'&quot;');
@@ -1039,6 +1092,12 @@ function renderSmartConfirm(sugg, originalText){
           <label>Supplier name</label>
           <input id="smart-supplier" value="${supplierVal}" placeholder="e.g. City Wholesalers">
         </div>
+      </div>
+      <div id="smart-income-category-wrap" class="${type==='other_income'?'':'hidden'}">
+        <label>Category</label>
+        <select id="smart-income-category">
+          ${incomeCategories.map(c=>`<option ${sugg.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
       </div>
       <div id="smart-customer-wrap" class="${type==='customer_payment'?'':'hidden'}">
         <label>Customer name</label>
@@ -1071,6 +1130,7 @@ function renderSmartConfirm(sugg, originalText){
   document.getElementById('smart-type').addEventListener('change', e=>{
     const t = e.target.value;
     document.getElementById('smart-category-wrap').classList.toggle('hidden', t!=='expense');
+    document.getElementById('smart-income-category-wrap').classList.toggle('hidden', t!=='other_income');
     document.getElementById('smart-customer-wrap').classList.toggle('hidden', t!=='customer_payment');
     document.getElementById('smart-supplier-payment-wrap').classList.toggle('hidden', t!=='supplier_payment');
   });
@@ -1078,7 +1138,9 @@ function renderSmartConfirm(sugg, originalText){
 
 async function confirmSmartTransaction(){
   const type = document.getElementById('smart-type').value;
-  const category = type==='expense' ? document.getElementById('smart-category').value : null;
+  let category = null;
+  if(type==='expense') category = document.getElementById('smart-category').value;
+  else if(type==='other_income') category = document.getElementById('smart-income-category').value;
   const amount = parseFloat(document.getElementById('smart-amount').value);
   const currency = document.getElementById('smart-currency').value;
   const pay = document.getElementById('smart-pay').value;
@@ -1137,6 +1199,7 @@ function renderAll(){
   const salesToday = todays.filter(t=>t.type==='sale').reduce((s,t)=>s+rv(t.amount,t.currency),0);
   const costToday = todays.filter(t=>t.type==='sale').reduce((s,t)=>s+rv(t.cost||0,t.currency),0);
   const expToday = todays.filter(t=>t.type==='expense').reduce((s,t)=>s+rv(t.amount,t.currency),0);
+  const otherIncomeToday = todays.filter(t=>t.type==='other_income').reduce((s,t)=>s+rv(t.amount,t.currency),0);
   const grossProfit = salesToday - costToday;
   const estProfit = grossProfit - expToday;
 
@@ -1150,12 +1213,14 @@ function renderAll(){
   document.getElementById('stat-profit').textContent = money(estProfit);
   document.getElementById('stat-owed').textContent = money(customerOwed);
   document.getElementById('stat-supplier-owed').textContent = money(supplierOwed);
+  document.getElementById('stat-other-income').textContent = money(otherIncomeToday);
 
   const insight = document.getElementById('insight-box');
   if(todays.length===0){
     insight.innerHTML = `<b>No sales recorded yet today.</b><br>Tap "New sale" above to record your first sale of the day.`;
   } else {
-    insight.innerHTML = `You sold <b>${money(salesToday)}</b> worth of products today. The estimated cost of goods sold was <b>${money(costToday)}</b>, giving a gross profit of <b>${money(grossProfit)}</b>. After <b>${money(expToday)}</b> in recorded expenses, your estimated profit is <b>${money(estProfit)}</b>. This may be incomplete if not all costs were recorded.`;
+    const otherIncomeLine = otherIncomeToday>0 ? ` You also received <b>${money(otherIncomeToday)}</b> in other income today (not from product sales).` : '';
+    insight.innerHTML = `You sold <b>${money(salesToday)}</b> worth of products today. The estimated cost of goods sold was <b>${money(costToday)}</b>, giving a gross profit of <b>${money(grossProfit)}</b>. After <b>${money(expToday)}</b> in recorded expenses, your estimated profit is <b>${money(estProfit)}</b>.${otherIncomeLine} This may be incomplete if not all costs were recorded.`;
   }
 
   const otherCurrency = DB.currency==='USD' ? 'ZiG' : 'USD';
@@ -1210,11 +1275,72 @@ function renderRecent(){
     ? recent.map(txnRow).join('')
     : `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions yet. Tap "New sale" to record your first one.</div>`;
 }
+function dateHeaderLabel(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const todayD = new Date(todayStr()+'T00:00:00');
+  const diffDays = Math.round((todayD-d)/86400000);
+  if(diffDays===0) return 'Today';
+  if(diffDays===1) return 'Yesterday';
+  return d.toLocaleDateString(undefined,{weekday:'long', day:'numeric', month:'long'});
+}
 function renderTxnList(){
-  const all = [...DB.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  document.getElementById('txn-list').innerHTML = all.length
-    ? all.map(txnRow).join('')
-    : `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions recorded yet.</div>`;
+  const typeFilter = document.getElementById('txn-filter-type')?.value || '';
+  const fromFilter = document.getElementById('txn-filter-from')?.value || '';
+  const toFilter = document.getElementById('txn-filter-to')?.value || '';
+  let all = [...DB.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(typeFilter) all = all.filter(t=>t.type===typeFilter);
+  if(fromFilter) all = all.filter(t=>t.date.slice(0,10) >= fromFilter);
+  if(toFilter) all = all.filter(t=>t.date.slice(0,10) <= toFilter);
+
+  if(!all.length){
+    document.getElementById('txn-list').innerHTML = DB.transactions.length
+      ? `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions match these filters.</div>`
+      : `<div class="empty-state"><div class="big">${ICON_RECEIPT}</div>No transactions recorded yet.</div>`;
+    return;
+  }
+  let html = '', lastDay = null;
+  for(const t of all){
+    const day = t.date.slice(0,10);
+    if(day !== lastDay){
+      html += `<div style="font-size:11.5px;font-weight:700;color:var(--ink-400);text-transform:uppercase;letter-spacing:.4px;margin:${lastDay?'14px':'0'} 0 4px;">${dateHeaderLabel(day)}</div>`;
+      lastDay = day;
+    }
+    html += txnRow(t);
+  }
+  document.getElementById('txn-list').innerHTML = html;
+}
+async function downloadReport(){
+  const from = document.getElementById('txn-filter-from')?.value;
+  const to = document.getElementById('txn-filter-to')?.value;
+  const helpEl = document.getElementById('report-range-help');
+  if(!from || !to){
+    helpEl.style.color = 'var(--red-600)';
+    helpEl.textContent = 'Please choose both a From and To date above first.';
+    return;
+  }
+  helpEl.style.color = 'var(--ink-600)';
+  helpEl.textContent = 'Preparing your report…';
+  try{
+    const res = await apiFetch(`/api/reports/pdf?business_id=${getBusinessId()}&from=${from}&to=${to}`);
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error || 'Could not generate the report.');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MariWise-Report-${from}-to-${to}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    helpEl.style.color = 'var(--teal-700)';
+    helpEl.textContent = 'Report downloaded.';
+  }catch(e){
+    helpEl.style.color = 'var(--red-600)';
+    helpEl.textContent = 'Could not download: '+e.message;
+  }
 }
 function renderStockList(){
   document.getElementById('stock-list').innerHTML = DB.products.length ? DB.products.map(p=>{
@@ -1222,7 +1348,7 @@ function renderStockList(){
     return `
     <div class="list-item">
       <div class="li-left" style="cursor:pointer;" onclick="openModal('edit-product','${p.id}')">
-        <div class="title">${p.name}</div>
+        <div class="title">${p.name} <span class="tag stock" style="margin-left:2px;">${p.category||'General'}</span></div>
         <div class="sub">${fmt(p.price,pCur)} sell · ${fmt(p.cost,pCur)} cost · ${p.stock} ${p.unit} in stock${pCur!==DB.currency?` · <span style="opacity:.7;">${pCur}</span>`:''}${p.stock<=p.low_stock?' · <span style="color:var(--red-600);font-weight:700;">low stock</span>':''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">

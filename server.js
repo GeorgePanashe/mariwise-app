@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const PDFDocument = require('pdfkit');
 
 const app = express();
 app.use(express.json());
@@ -70,6 +71,84 @@ function convertAmount(amount, fromCurrency, toCurrency, rate) {
   if (from === 'USD' && toCurrency === 'ZiG') return { value: (Number(amount) || 0) * rate, ok: true, converted: true };
   if (from === 'ZiG' && toCurrency === 'USD') return { value: (Number(amount) || 0) / rate, ok: true, converted: true };
   return { value: Number(amount) || 0, ok: false, converted: false };
+}
+
+// Turns a natural-language time reference (as classified by the intent step)
+// into concrete from/to dates, so "how much did I make this week" actually
+// queries this week, not a generic all-time blob.
+function periodBounds(period, customFrom, customTo, businessCreatedAt) {
+  const now = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const todayIso = iso(now);
+  switch (period) {
+    case 'today': return { from: todayIso, to: todayIso };
+    case 'yesterday': { const y = new Date(now); y.setDate(y.getDate() - 1); return { from: iso(y), to: iso(y) }; }
+    case 'this_week': { const m = new Date(now); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return { from: iso(m), to: todayIso }; }
+    case 'last_week': { const m = new Date(now); m.setDate(m.getDate() - ((m.getDay() + 6) % 7) - 7); const s = new Date(m); s.setDate(m.getDate() + 6); return { from: iso(m), to: iso(s) }; }
+    case 'this_month': { const f = new Date(now.getFullYear(), now.getMonth(), 1); return { from: iso(f), to: todayIso }; }
+    case 'last_month': { const f = new Date(now.getFullYear(), now.getMonth() - 1, 1); const l = new Date(now.getFullYear(), now.getMonth(), 0); return { from: iso(f), to: iso(l) }; }
+    case 'custom': if (customFrom && customTo) return { from: customFrom, to: customTo }; // else fall through
+    case 'all_time':
+    default: return { from: (businessCreatedAt || '2000-01-01').slice(0, 10), to: todayIso };
+  }
+}
+
+// Computes exact figures for a specific date range — the same shape of
+// summary whether it's answering a chat question or building a PDF report,
+// so "what did I ask" and "what got computed" always match precisely.
+function summarizeRange(txns, products, reportCurrency, rate, from, to) {
+  let unconverted = 0;
+  const c = (amount, fromCurrency) => {
+    const r = convertAmount(amount, fromCurrency, reportCurrency, rate);
+    if (!r.ok) unconverted++;
+    return r.value;
+  };
+  const inRange = txns.filter(t => { const d = t.created_at.slice(0, 10); return d >= from && d <= to; });
+  const upToEnd = txns.filter(t => t.created_at.slice(0, 10) <= to);
+  const sumType = (list, type) => list.filter(t => t.type === type).reduce((s, t) => s + c(t.amount, t.currency), 0);
+
+  const sales = sumType(inRange, 'sale');
+  const cost = inRange.filter(t => t.type === 'sale').reduce((s, t) => s + c(t.cost || 0, t.currency), 0);
+  const grossProfit = sales - cost;
+  const expenses = sumType(inRange, 'expense');
+  const otherIncome = sumType(inRange, 'other_income');
+  const withdrawals = sumType(inRange, 'owner_withdrawal');
+  const netProfit = grossProfit - expenses + otherIncome;
+
+  const groupBy = (list, type, keyField, amountField) => {
+    const out = {};
+    list.filter(t => t.type === type).forEach(t => {
+      const k = t[keyField] || 'Uncategorized';
+      out[k] = (out[k] || 0) + c(t[amountField] ?? t.amount, t.currency);
+    });
+    return out;
+  };
+  const expCat = groupBy(inRange, 'expense', 'category', 'amount');
+  const incCat = groupBy(inRange, 'other_income', 'category', 'amount');
+  const salesCat = groupBy(inRange, 'sale', 'category', 'amount');
+
+  const custTotals = {};
+  upToEnd.filter(t => t.type === 'sale' && Number(t.owed || 0) > 0).forEach(t => {
+    const k = t.customer || 'Unspecified customer'; custTotals[k] = (custTotals[k] || 0) + c(t.owed, t.currency);
+  });
+  upToEnd.filter(t => t.type === 'customer_payment').forEach(t => {
+    const k = t.customer || 'Unspecified customer'; custTotals[k] = (custTotals[k] || 0) - c(t.amount, t.currency);
+  });
+  const suppTotals = {};
+  upToEnd.filter(t => t.type === 'expense' && Number(t.owed_to_supplier || 0) > 0).forEach(t => {
+    const k = t.supplier || 'Unspecified supplier'; suppTotals[k] = (suppTotals[k] || 0) + c(t.owed_to_supplier, t.currency);
+  });
+  upToEnd.filter(t => t.type === 'supplier_payment').forEach(t => {
+    const k = t.supplier || 'Unspecified supplier'; suppTotals[k] = (suppTotals[k] || 0) - c(t.amount, t.currency);
+  });
+
+  const lowStock = (products || []).filter(p => p.stock <= p.low_stock).map(p => `${p.name} (${p.stock} ${p.unit} left)`);
+
+  return { sales, cost, grossProfit, expenses, otherIncome, withdrawals, netProfit, expCat, incCat, salesCat, custTotals, suppTotals, lowStock, unconverted };
+}
+function fmtEntries(obj) {
+  return Object.entries(obj).filter(([, v]) => Math.abs(v) > 0.005).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}: ${v.toFixed(2)}`).join(', ') || 'none';
 }
 
 // Pulls a JSON object out of a plain-text model reply: strips ```json fences
@@ -206,13 +285,13 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.post('/api/products', async (req, res) => {
-  const { business_id, name, unit, price, cost, stock, low_stock, currency } = req.body;
+  const { business_id, name, unit, price, cost, stock, low_stock, currency, category } = req.body;
   try {
     await assertOwnsBusiness(business_id, req.user.id);
   } catch (e) { return res.status(403).json({ error: e.message }); }
   const { data, error } = await supabase
     .from('products')
-    .insert({ business_id, name, unit, price, cost, stock, low_stock, currency: currency || 'USD' })
+    .insert({ business_id, name, unit, price, cost, stock, low_stock, currency: currency || 'USD', category: category || 'General' })
     .select()
     .single();
   if (error) return res.status(400).json({ error: error.message });
@@ -225,7 +304,7 @@ app.put('/api/products/:id', async (req, res) => {
   try {
     await assertOwnsBusiness(existing.business_id, req.user.id);
   } catch (e) { return res.status(403).json({ error: e.message }); }
-  const { name, unit, price, cost, stock, low_stock, currency } = req.body;
+  const { name, unit, price, cost, stock, low_stock, currency, category } = req.body;
   const update = {};
   if (name !== undefined) update.name = name;
   if (unit !== undefined) update.unit = unit;
@@ -234,6 +313,7 @@ app.put('/api/products/:id', async (req, res) => {
   if (stock !== undefined) update.stock = stock;
   if (low_stock !== undefined) update.low_stock = low_stock;
   if (currency !== undefined) update.currency = currency;
+  if (category !== undefined) update.category = category;
   const { data, error } = await supabase
     .from('products')
     .update(update)
@@ -276,7 +356,7 @@ app.post('/api/sale', async (req, res) => {
   } catch (e) { return res.status(403).json({ error: e.message }); }
   if (!items || !items.length) return res.status(400).json({ error: 'No items in sale' });
 
-  let total = 0, costTotal = 0, descParts = [], saleCurrency = null;
+  let total = 0, costTotal = 0, descParts = [], saleCurrency = null, saleCategory = null, categoryMixed = false;
   for (const item of items) {
     const { data: product, error: pErr } = await supabase
       .from('products').select().eq('id', item.product_id).single();
@@ -289,6 +369,9 @@ app.post('/api/sale', async (req, res) => {
       return res.status(400).json({ error: `This sale mixes ${saleCurrency} and ${pCurrency} priced products — split it into separate sales, one per currency.` });
     }
     saleCurrency = pCurrency;
+    const pCategory = product.category || 'General';
+    if (saleCategory === null) saleCategory = pCategory;
+    else if (saleCategory !== pCategory) categoryMixed = true;
     total += product.price * item.qty;
     costTotal += product.cost * item.qty;
     descParts.push(`${item.qty} ${product.unit} ${product.name}`);
@@ -303,6 +386,7 @@ app.post('/api/sale', async (req, res) => {
     .from('transactions')
     .insert({
       business_id, type: 'sale', amount: total, cost: costTotal, currency: saleCurrency || 'USD',
+      category: categoryMixed ? 'Mixed' : (saleCategory || 'General'),
       description: descParts.join(', '), payment_method: pay, customer, owed,
     })
     .select().single();
@@ -316,6 +400,7 @@ app.post('/api/sale', async (req, res) => {
 // withdrawals, other income, and payments that settle a customer's or
 // supplier's outstanding balance.
 const TXN_TYPES = ['expense', 'owner_withdrawal', 'other_income', 'customer_payment', 'supplier_payment'];
+const CATEGORIZED_TYPES = ['expense', 'other_income'];
 app.post('/api/transactions', async (req, res) => {
   const { business_id, type, amount, category, desc, pay, supplier, on_credit, customer, currency } = req.body;
   try {
@@ -323,10 +408,14 @@ app.post('/api/transactions', async (req, res) => {
   } catch (e) { return res.status(403).json({ error: e.message }); }
   if (!TXN_TYPES.includes(type)) return res.status(400).json({ error: 'Unsupported transaction type' });
   if (!amount || amount <= 0) return res.status(400).json({ error: 'Amount must be greater than zero' });
+  if (!desc || !desc.trim()) return res.status(400).json({ error: 'Every transaction needs a short description.' });
+  if (CATEGORIZED_TYPES.includes(type) && !category) {
+    return res.status(400).json({ error: 'Please choose a category — every expense and other-income entry must be classified.' });
+  }
 
   const row = { business_id, type, amount, currency: currency || 'USD', description: desc, payment_method: pay };
+  if (CATEGORIZED_TYPES.includes(type)) row.category = category;
   if (type === 'expense') {
-    row.category = category || null;
     // Track "bought on credit" by the flag itself, not by whether a supplier
     // name happened to be given — a debt is still a debt even unnamed.
     if (on_credit) {
@@ -363,7 +452,7 @@ Return ONLY a JSON object with exactly these fields:
   "type": "expense" | "owner_withdrawal" | "other_income" | "customer_payment" | "supplier_payment",
   "amount": <number, the money amount mentioned, or null if none was mentioned>,
   "currency": "USD" | "ZiG" | null (null if not stated — look for $, "dollars", "USD" for USD, or "ZiG", "Zimbabwe Gold", "zig" for ZiG),
-  "category": <one of "Rent","Wages","Transport","Stock & Supplies","Utilities","Marketing","Other" — ONLY when type is "expense", otherwise null>,
+  "category": <for type "expense", one of "Rent","Wages","Transport","Stock & Supplies","Utilities","Marketing","Other"; for type "other_income", one of "Loan","Grant or Donation","Refund","Owner Contribution","Interest","Other"; otherwise null>,
   "on_credit": <true if type is "expense" AND the owner says they bought this on credit / owe a supplier for it / haven't paid for it yet, otherwise false>,
   "supplier": <the supplier's name if one was mentioned (for an on-credit expense or a supplier_payment), otherwise null>,
   "customer": <the customer's name if one was mentioned (for a customer_payment), otherwise null>,
@@ -398,88 +487,54 @@ app.post('/api/ask', async (req, res) => {
       await assertOwnsBusiness(business_id, req.user.id);
     } catch (e) { return res.status(403).json({ error: e.message }); }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: biz } = await supabase.from('businesses').select('currency, exchange_rate').eq('id', business_id).single();
+    const { data: biz } = await supabase.from('businesses').select('currency, exchange_rate, created_at').eq('id', business_id).single();
     const reportCurrency = biz?.currency || 'USD';
     const rate = biz?.exchange_rate;
     const { data: txnsRaw } = await supabase.from('transactions').select().eq('business_id', business_id);
     const { data: products } = await supabase.from('products').select().eq('business_id', business_id);
     const txns = txnsRaw || [];
-    const todays = txns.filter(t => t.created_at.slice(0, 10) === today);
+    const today = new Date().toISOString().slice(0, 10);
 
-    let unconvertedCount = 0;
-    const c = (amount, fromCurrency) => {
-      const r = convertAmount(amount, fromCurrency, reportCurrency, rate);
-      if (!r.ok) unconvertedCount++;
-      return r.value;
-    };
-    const sumType = (list, type) => list.filter(t => t.type === type).reduce((s, t) => s + c(t.amount, t.currency), 0);
+    // Stage 1 — NLP intent extraction: work out what they're actually asking
+    // about (topic, time period, and any specific name mentioned) before
+    // touching the data, instead of always handing the model one generic
+    // everything-blob regardless of the question.
+    const intentSystem = `Extract the intent behind a small business owner's question about their own business records. Today's date is ${today}. Return ONLY a JSON object:
+{
+  "topic": "sales" | "profit" | "expenses" | "other_income" | "customer_debt" | "supplier_debt" | "stock" | "category_breakdown" | "report" | "general",
+  "period": "today" | "yesterday" | "this_week" | "last_week" | "this_month" | "last_month" | "all_time" | "custom",
+  "from": <"YYYY-MM-DD" ONLY if period is "custom" and a specific start date was stated, else null>,
+  "to": <"YYYY-MM-DD" ONLY if period is "custom" and a specific end date was stated, else null>,
+  "entity": <the specific customer name, supplier name, or product/category name mentioned, if any — else null>
+}
+If no time period is implied, use "all_time" for questions about totals/profit/overall standing, or "today" if the question clearly means right now.`;
+    let intent;
+    try {
+      intent = await askGroqJSON(intentSystem, question);
+    } catch (e) {
+      intent = { topic: 'general', period: 'all_time', from: null, to: null, entity: null };
+    }
+    const bounds = periodBounds(intent.period, intent.from, intent.to, biz?.created_at);
 
-    const salesToday = sumType(todays, 'sale');
-    const costToday = todays.filter(t => t.type === 'sale').reduce((s, t) => s + c(t.cost || 0, t.currency), 0);
-    const expToday = sumType(todays, 'expense');
+    // Stage 2 — compute the EXACT figures for that specific period, no more
+    // and no less, so the final answer is grounded in precisely what was asked.
+    const s = summarizeRange(txns, products, reportCurrency, rate, bounds.from, bounds.to);
 
-    const totalSales = sumType(txns, 'sale');
-    const totalCost = txns.filter(t => t.type === 'sale').reduce((s, t) => s + c(t.cost || 0, t.currency), 0);
-    const totalExpenses = sumType(txns, 'expense');
-    const totalWithdrawals = sumType(txns, 'owner_withdrawal');
-    const totalOtherIncome = sumType(txns, 'other_income');
-
-    const customerOwed = txns.reduce((s, t) => s + c(t.owed || 0, t.currency), 0) - sumType(txns, 'customer_payment');
-    const supplierOwed = txns.filter(t => t.type === 'expense').reduce((s, t) => s + c(t.owed_to_supplier || 0, t.currency), 0) - sumType(txns, 'supplier_payment');
-
-    const lowStock = (products || []).filter(p => p.stock <= p.low_stock).map(p => `${p.name} (${p.stock} ${p.unit} left)`);
-
-    const catTotals = {};
-    txns.filter(t => t.type === 'expense').forEach(t => {
-      const cat = t.category || 'Uncategorized';
-      catTotals[cat] = (catTotals[cat] || 0) + c(t.amount, t.currency);
-    });
-    const catBreakdown = Object.entries(catTotals)
-      .sort((a, b) => b[1] - a[1])
-      .map(([cat, v]) => `${cat}: ${v.toFixed(2)}`).join(', ') || 'none recorded';
-
-    const supplierTotals = {};
-    txns.filter(t => t.type === 'expense' && Number(t.owed_to_supplier || 0) > 0).forEach(t => {
-      const name = t.supplier || 'Unspecified supplier';
-      supplierTotals[name] = (supplierTotals[name] || 0) + c(t.owed_to_supplier, t.currency);
-    });
-    txns.filter(t => t.type === 'supplier_payment').forEach(t => {
-      const name = t.supplier || 'Unspecified supplier';
-      supplierTotals[name] = (supplierTotals[name] || 0) - c(t.amount || 0, t.currency);
-    });
-    const supplierBreakdown = Object.entries(supplierTotals)
-      .filter(([, v]) => Math.abs(v) > 0.001)
-      .sort((a, b) => b[1] - a[1])
-      .map(([s, v]) => `${s}: ${v.toFixed(2)}`).join(', ') || 'none recorded';
-
-    const customerTotals = {};
-    txns.filter(t => t.type === 'sale' && Number(t.owed || 0) > 0).forEach(t => {
-      const name = t.customer || 'Unspecified customer';
-      customerTotals[name] = (customerTotals[name] || 0) + c(t.owed, t.currency);
-    });
-    txns.filter(t => t.type === 'customer_payment').forEach(t => {
-      const name = t.customer || 'Unspecified customer';
-      customerTotals[name] = (customerTotals[name] || 0) - c(t.amount || 0, t.currency);
-    });
-    const customerBreakdown = Object.entries(customerTotals)
-      .filter(([, v]) => Math.abs(v) > 0.001)
-      .sort((a, b) => b[1] - a[1])
-      .map(([cName, v]) => `${cName}: ${v.toFixed(2)}`).join(', ') || 'none recorded';
-
-    const conversionNote = unconvertedCount > 0
-      ? ` NOTE: ${unconvertedCount} record(s) were in a different currency than the report currency and could NOT be converted because no exchange rate is saved (Settings) — the figures above may be incomplete or understated. Mention this if it seems relevant.`
+    const periodLabel = bounds.from === bounds.to ? bounds.from : `${bounds.from} to ${bounds.to}`;
+    const conversionNote = s.unconverted > 0
+      ? ` NOTE: ${s.unconverted} record(s) in this period were in a different currency and could NOT be converted because no exchange rate is saved (Settings) — figures may be understated. Mention this if relevant.`
       : '';
-
-    const context = `Report currency: ${reportCurrency}. All figures below are converted into this currency using the owner's saved exchange rate where needed — the original transaction records themselves keep whatever currency they were actually made in.${conversionNote}
-TODAY — sales: ${salesToday.toFixed(2)}, cost of goods sold: ${costToday.toFixed(2)}, expenses: ${expToday.toFixed(2)}.
-ALL-TIME (everything recorded so far) — total sales: ${totalSales.toFixed(2)}, total cost of goods sold: ${totalCost.toFixed(2)}, total gross profit (sales minus cost of goods sold): ${(totalSales - totalCost).toFixed(2)}, total overheads/expenses: ${totalExpenses.toFixed(2)}, total net profit (gross profit minus overheads): ${(totalSales - totalCost - totalExpenses).toFixed(2)}.
-Overheads by category: ${catBreakdown}.
-Total owner withdrawals so far (personal money taken out — this does NOT count as a business expense): ${totalWithdrawals.toFixed(2)}.
-Total other income so far (money in that wasn't a product sale, e.g. loans, refunds): ${totalOtherIncome.toFixed(2)}.
-Total customer debt currently owed to the business: ${customerOwed.toFixed(2)}. By customer: ${customerBreakdown}.
-Total the business currently owes to suppliers: ${supplierOwed.toFixed(2)}. By supplier: ${supplierBreakdown}.
-Low stock items: ${lowStock.join(', ') || 'none'}.`;
+    let context = `Report currency: ${reportCurrency}. This answer covers the period ${periodLabel} (interpreted from the question as "${intent.period}") — state this period plainly in your answer so it's clear which numbers these are.${conversionNote}
+Sales: ${s.sales.toFixed(2)}. Cost of goods sold: ${s.cost.toFixed(2)}. Gross profit: ${s.grossProfit.toFixed(2)}. Expenses: ${s.expenses.toFixed(2)}. Other income: ${s.otherIncome.toFixed(2)}. Net profit: ${s.netProfit.toFixed(2)}. Owner withdrawals (not an expense): ${s.withdrawals.toFixed(2)}.
+Sales by product category: ${fmtEntries(s.salesCat)}.
+Expenses by category: ${fmtEntries(s.expCat)}.
+Other income by category: ${fmtEntries(s.incCat)}.
+Customers who currently owe money (running balance as of ${bounds.to}): ${fmtEntries(s.custTotals)}.
+Suppliers currently owed money (running balance as of ${bounds.to}): ${fmtEntries(s.suppTotals)}.
+Low stock items right now: ${s.lowStock.join(', ') || 'none'}.`;
+    if (intent.entity) {
+      context += `\nThe owner specifically asked about "${intent.entity}" — find this name in the category/customer/supplier data above and answer specifically about it. If it does not appear anywhere above, say plainly that you found no record of it rather than guessing or inventing a figure.`;
+    }
 
     const system = `You are MariWise, a financial assistant for a small business owner with no formal accounting background.
 
@@ -487,9 +542,11 @@ Priority order for every answer:
 1. FIRST, answer using the business's own real data given below — this is always the primary content. Never invent figures; if the data doesn't cover something, say so plainly.
 2. ONLY IF genuinely useful, add general business or financial knowledge/advice afterward, clearly marked as general (e.g. start it with "In general," or "As a tip,") so it's never confused with one of their actual numbers. Don't lead with general advice when their own data could answer the question.
 
+This data is scoped specifically to what was asked — state the exact period or figure you're using early in the answer (e.g. "Looking at ${periodLabel}...") so it's unmistakable this is their real, current data and not a generic response.
+
 Go beyond reciting numbers — give a real INSIGHT: what a figure means, whether something looks off or worth watching, or one concrete next step. A bare restatement of a number with no interpretation is not a complete answer.
 
-When asked who owes money, who they owe, or for a breakdown of customer or supplier debt, use the "By customer" / "By supplier" lists in the data below and name each name and amount as its own bullet — never just give the single total when a breakdown is available. If an entry is "Unspecified supplier" or "Unspecified customer", mention that a name wasn't recorded for that amount rather than skipping it.
+When asked who owes money, who they owe, or for a breakdown, list each name and amount as its own bullet from the data above — never just give a single total when a breakdown is available. If an entry is "Unspecified", mention that a name wasn't recorded for that amount rather than skipping it.
 
 Formatting for this chat bubble:
 - Short paragraphs, skimmable.
@@ -505,6 +562,151 @@ ${context}`;
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ---------------- PDF Reports ----------------
+// A simplified management report (not statutory financial statements) for a
+// date range: P&L, expense/other-income breakdowns, cash flow, and a
+// receivables/payables snapshot as of the end date.
+app.get('/api/reports/pdf', async (req, res) => {
+  const { business_id, from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'Please choose a start and end date.' });
+  let biz;
+  try {
+    biz = await assertOwnsBusiness(business_id, req.user.id);
+  } catch (e) { return res.status(403).json({ error: e.message }); }
+
+  const reportCurrency = biz.currency || 'USD';
+  const rate = biz.exchange_rate;
+  const { data: txnsRaw } = await supabase.from('transactions').select().eq('business_id', business_id);
+  const txns = txnsRaw || [];
+  const inRange = txns.filter(t => {
+    const d = t.created_at.slice(0, 10);
+    return d >= from && d <= to;
+  });
+  const upToEnd = txns.filter(t => t.created_at.slice(0, 10) <= to);
+
+  const c = (amount, fromCurrency) => convertAmount(amount, fromCurrency, reportCurrency, rate).value;
+  const sumType = (list, type) => list.filter(t => t.type === type).reduce((s, t) => s + c(t.amount, t.currency), 0);
+  const sym = (v) => `${{ USD: '$', ZiG: 'ZiG ' }[reportCurrency] || ''}${Number(v || 0).toFixed(2)}`;
+
+  const sales = sumType(inRange, 'sale');
+  const cost = inRange.filter(t => t.type === 'sale').reduce((s, t) => s + c(t.cost || 0, t.currency), 0);
+  const grossProfit = sales - cost;
+  const expenses = sumType(inRange, 'expense');
+  const otherIncome = sumType(inRange, 'other_income');
+  const withdrawals = sumType(inRange, 'owner_withdrawal');
+  const netProfit = grossProfit - expenses + otherIncome;
+
+  const expCat = {};
+  inRange.filter(t => t.type === 'expense').forEach(t => {
+    const k = t.category || 'Uncategorized';
+    expCat[k] = (expCat[k] || 0) + c(t.amount, t.currency);
+  });
+  const incCat = {};
+  inRange.filter(t => t.type === 'other_income').forEach(t => {
+    const k = t.category || 'Uncategorized';
+    incCat[k] = (incCat[k] || 0) + c(t.amount, t.currency);
+  });
+
+  const cashIn = inRange.filter(t => (t.type === 'sale' && t.payment_method !== 'Credit (customer owes)') || t.type === 'other_income' || t.type === 'customer_payment')
+    .reduce((s, t) => s + c(t.amount, t.currency), 0);
+  const cashOut = inRange.filter(t => (t.type === 'expense' && !(Number(t.owed_to_supplier || 0) > 0)) || t.type === 'owner_withdrawal' || t.type === 'supplier_payment')
+    .reduce((s, t) => s + c(t.amount, t.currency), 0);
+
+  // Receivables/payables as a running snapshot as of the report end date.
+  const custTotals = {};
+  upToEnd.filter(t => t.type === 'sale' && Number(t.owed || 0) > 0).forEach(t => {
+    const k = t.customer || 'Unspecified customer'; custTotals[k] = (custTotals[k] || 0) + c(t.owed, t.currency);
+  });
+  upToEnd.filter(t => t.type === 'customer_payment').forEach(t => {
+    const k = t.customer || 'Unspecified customer'; custTotals[k] = (custTotals[k] || 0) - c(t.amount, t.currency);
+  });
+  const suppTotals = {};
+  upToEnd.filter(t => t.type === 'expense' && Number(t.owed_to_supplier || 0) > 0).forEach(t => {
+    const k = t.supplier || 'Unspecified supplier'; suppTotals[k] = (suppTotals[k] || 0) + c(t.owed_to_supplier, t.currency);
+  });
+  upToEnd.filter(t => t.type === 'supplier_payment').forEach(t => {
+    const k = t.supplier || 'Unspecified supplier'; suppTotals[k] = (suppTotals[k] || 0) - c(t.amount, t.currency);
+  });
+  const custEntries = Object.entries(custTotals).filter(([, v]) => Math.abs(v) > 0.005);
+  const suppEntries = Object.entries(suppTotals).filter(([, v]) => Math.abs(v) > 0.005);
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="MariWise-Report-${from}-to-${to}.pdf"`);
+
+  const doc = new PDFDocument({ margin: 50 });
+  doc.pipe(res);
+
+  const TEAL = '#0B4A40', GOLD = '#B7791F', INK = '#1C2521', MUTED = '#5B6862';
+  doc.fillColor(TEAL).fontSize(22).font('Helvetica-Bold').text('MariWise', { continued: false });
+  doc.fillColor(MUTED).fontSize(10).font('Helvetica').text('Know your numbers. Grow your business.');
+  doc.moveDown(0.6);
+  doc.fillColor(INK).fontSize(15).font('Helvetica-Bold').text(biz.name || 'Business Report');
+  doc.fillColor(MUTED).fontSize(10).font('Helvetica').text(`Report period: ${from} to ${to}  ·  Currency: ${reportCurrency}  ·  Generated: ${new Date().toISOString().slice(0, 10)}`);
+  doc.moveDown(1);
+
+  function sectionHeader(title) {
+    doc.moveDown(0.6);
+    doc.fillColor(TEAL).fontSize(13).font('Helvetica-Bold').text(title);
+    doc.moveTo(doc.x, doc.y + 2).lineTo(545, doc.y + 2).strokeColor(GOLD).lineWidth(1.2).stroke();
+    doc.moveDown(0.5);
+  }
+  function row(label, value, opts = {}) {
+    doc.fillColor(opts.bold ? TEAL : INK).font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10.5);
+    const y = doc.y;
+    doc.text(label, 55, y, { continued: false, width: 350 });
+    doc.text(value, 55, y, { width: 490, align: 'right' });
+    doc.moveDown(0.35);
+  }
+
+  sectionHeader('Profit & Loss');
+  row('Sales', sym(sales));
+  row('Cost of goods sold', `(${sym(cost)})`);
+  row('Gross profit', sym(grossProfit), { bold: true });
+  row('Operating expenses', `(${sym(expenses)})`);
+  row('Other income', sym(otherIncome));
+  row('Net profit', sym(netProfit), { bold: true });
+
+  if (Object.keys(expCat).length) {
+    sectionHeader('Expenses by Category');
+    Object.entries(expCat).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => row(k, sym(v)));
+  }
+  if (Object.keys(incCat).length) {
+    sectionHeader('Other Income by Category');
+    Object.entries(incCat).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => row(k, sym(v)));
+  }
+
+  sectionHeader('Cash Flow (this period)');
+  row('Cash in', sym(cashIn));
+  row('Cash out', `(${sym(cashOut)})`);
+  row('Net cash movement', sym(cashIn - cashOut), { bold: true });
+  if (withdrawals > 0) row('Owner withdrawals (not a business expense)', sym(withdrawals));
+
+  sectionHeader(`Receivables & Payables (as of ${to})`);
+  if (custEntries.length) {
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(10.5).text('Customers who owe the business:');
+    doc.moveDown(0.2);
+    custEntries.sort((a, b) => b[1] - a[1]).forEach(([k, v]) => row(k, sym(v)));
+  } else {
+    row('Customers who owe the business', 'None outstanding');
+  }
+  doc.moveDown(0.3);
+  if (suppEntries.length) {
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(10.5).text('Suppliers the business owes:');
+    doc.moveDown(0.2);
+    suppEntries.sort((a, b) => b[1] - a[1]).forEach(([k, v]) => row(k, sym(v)));
+  } else {
+    row('Suppliers the business owes', 'None outstanding');
+  }
+
+  doc.moveDown(1);
+  doc.fillColor(MUTED).fontSize(8).font('Helvetica-Oblique').text(
+    'This is a management report generated from records the owner entered themselves — not an audited financial statement. Figures are converted to the report currency using the exchange rate saved in Settings at the time this report was generated.',
+    { width: 495 }
+  );
+
+  doc.end();
 });
 
 const PORT = process.env.PORT || 3001;
