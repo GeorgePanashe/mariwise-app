@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>MariWise — Prototype</title>
+<title>MariWise</title>
+<meta name="theme-color" content="#0B4A40">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MariWise">
 <style>
   :root{
     --teal-900:#0B4A40;
@@ -1377,6 +1384,12 @@ async function boot(){
   }
 }
 boot();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{ /* installability is a nice-to-have, never block on it */ });
+  });
+}
 </script>
 
 <div id="modal-backdrop" class="modal-backdrop hidden" onclick="if(event.target===this) closeModal()">
